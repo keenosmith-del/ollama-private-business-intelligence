@@ -6,6 +6,8 @@ import hmac
 import io
 import os
 import re
+import json
+import logging
 import time
 import uuid
 from datetime import date
@@ -25,6 +27,16 @@ INTERNAL_TOKEN=os.getenv('AI_INTERNAL_TOKEN','')
 def verify_internal(x_internal_token:str|None=Header(default=None)):
     if not INTERNAL_TOKEN or not x_internal_token or not hmac.compare_digest(x_internal_token,INTERNAL_TOKEN): raise HTTPException(401,detail={'code':'UNAUTHENTICATED','message':'Internal service authentication required'})
 app=FastAPI(title='Private BI AI Runtime',version='0.1.0',description='Local document intelligence and grounded business analysis')
+logger=logging.getLogger('private_bi.runtime')
+
+@app.middleware('http')
+async def observe_requests(request, call_next):
+    started=time.perf_counter()
+    try:
+        response=await call_next(request)
+        return response
+    finally:
+        logger.info(json.dumps({'event':'http_request','method':request.method,'path':request.url.path,'status':getattr(locals().get('response'),'status_code',500),'durationMs':round((time.perf_counter()-started)*1000,2)}))
 
 class IngestRequest(BaseModel):
     filename:str=Field(min_length=1,max_length=255)

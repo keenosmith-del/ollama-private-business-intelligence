@@ -16,6 +16,8 @@ import {documentAccessRouter} from './routes/document-access.js';
 import {runMigrations} from './migrations.js';
 
 export const app=express(); app.disable('x-powered-by'); app.use(helmet()); app.use(cors({origin:true,credentials:true})); app.use(express.json({limit:'1mb'})); app.use('/api',rateLimit({windowMs:60_000,limit:120,standardHeaders:true,legacyHeaders:false}));
+// Emit timing and outcome metadata only; request bodies may contain sensitive business data.
+app.use((req,res,next)=>{const started=process.hrtime.bigint();res.on('finish',()=>{const durationMs=Number(process.hrtime.bigint()-started)/1e6;console.info(JSON.stringify({event:'http_request',method:req.method,path:req.path,status:res.statusCode,durationMs:Math.round(durationMs*100)/100}))});next()});
 app.use('/api/auth',authRouter);
 app.use('/api/organisations',organisationsRouter);
 app.use('/api',documentAccessRouter);
