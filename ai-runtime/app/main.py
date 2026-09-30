@@ -1,5 +1,13 @@
 from __future__ import annotations
-import base64, csv, hashlib, hmac, io, os, re, time, uuid
+import base64
+import csv
+import hashlib
+import hmac
+import io
+import os
+import re
+import time
+import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 import httpx
@@ -96,7 +104,7 @@ def parse_sales_csv(raw:bytes)->list[dict[str,object]]:
             if not amount.is_finite() or amount<0: raise ValueError('amount must be a non-negative number')
             if amount>Decimal('999999999999.99') or amount.quantize(Decimal('0.01'))!=amount: raise ValueError('amount exceeds the supported precision')
             rows.append({'customer':customer,'date':sale_date,'amount':amount,'industry':(row.get(industry_col) or '').strip() or None if industry_col else None})
-        except (ValueError,InvalidOperation) as e: errors.append(line)
+        except (ValueError,InvalidOperation): errors.append(line)
         if len(rows)+len(errors)>10000: raise HTTPException(413,detail={'code':'CSV_ROW_LIMIT','message':'CSV may contain at most 10,000 data rows'})
     if errors: raise HTTPException(422,detail={'code':'CSV_ROWS_INVALID','message':'CSV contains invalid rows','lines':errors[:20]})
     if not rows: raise HTTPException(422,detail={'code':'CSV_EMPTY','message':'CSV contains no business records'})
