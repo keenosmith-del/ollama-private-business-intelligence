@@ -7,4 +7,7 @@ export async function api<T>(path:string,init:RequestInit={}):Promise<T>{
   if(!response.ok)throw new Error(payload?.error?.message??'The request could not be completed');return payload as T;
 }
 export const signIn=(email:string,password:string)=>api<{data:{accessToken:string;user:{id:string;email:string;role:string}}}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
-export const analyse=(question:string)=>api<{data:{answer:string;confidence:string;analysisType:string;sources:unknown[];metrics:unknown[];warnings:string[]}}>('/analysis',{method:'POST',body:JSON.stringify({question})});
+export type AnalysisSource = { type?: string; id?: string; name?: string; page?: number | null; description?: string };
+export type AnalysisMetric = { metric?: string; value?: number; quarter?: string; revenue?: number; customer?: string; category?: string; amount?: number; count?: number; severity?: string; change?: number };
+export type AnalysisResponse = { answer: string; confidence: string; analysisType: string; sources: AnalysisSource[]; metrics: AnalysisMetric[]; warnings: string[]; latencyMs?: number };
+export const analyse=(question:string)=>api<{data:AnalysisResponse}>('/analysis',{method:'POST',body:JSON.stringify({question})});
