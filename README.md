@@ -16,7 +16,7 @@ This is an in-progress foundation and initial backend vertical slice, not a comp
 
 The sample SQL can be loaded with `docker compose exec -T postgres psql -U pbi -d pbi < database/seeds/001_demo.sql` after the organisation exists. It uses fictional customers, quarterly sales, costs and incidents. After login, upload `data/sample/refund-policy.txt` and `data/sample/management-report-q2.txt` to `/api/documents` to exercise the RAG and hybrid paths.
 
-Run `PBI_E2E_PASSWORD='a-local-password-of-12-or-more-characters' python3 scripts/e2e-smoke.py` with Compose running to execute the auth, upload, deterministic revenue, hybrid analysis and policy retrieval smoke workflow. On first run it uses `BOOTSTRAP_TOKEN` from `.env` to create the local admin.
+Run `python3 scripts/e2e-smoke.py` with Compose running to execute the auth, upload, deterministic revenue, hybrid analysis, policy retrieval, audit and user-role smoke workflow. It reads `PBI_E2E_PASSWORD` and `BOOTSTRAP_TOKEN` from the local `.env` (or accepts `PBI_E2E_PASSWORD` from the process environment). On first run it uses the bootstrap token to create the local admin.
 
 ## API surface (current)
 
