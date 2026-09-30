@@ -14,12 +14,16 @@ SELECT v.id,o.id,v.customer_id,v.sale_date,v.amount FROM organisations o CROSS J
 ) v(id,customer_id,sale_date,amount)
 WHERE o.id=(SELECT id FROM organisations ORDER BY created_at LIMIT 1)
 ON CONFLICT(id) DO NOTHING;
-INSERT INTO financial_records(id,org_id,record_date,category,amount,description)
-SELECT v.id,o.id,v.record_date,v.category,v.amount,v.description FROM organisations o CROSS JOIN (VALUES
-('22222222-2222-3333-4444-555555555555'::uuid,'2026-02-28'::date,'Logistics',18500::numeric,'Expedited Q1 shipments'),
-('33333333-2222-3333-4444-555555555555'::uuid,'2026-05-31'::date,'Logistics',34750::numeric,'Expedited Q2 shipments'),
-('44444444-2222-3333-4444-555555555555'::uuid,'2026-05-31'::date,'Returns',12900::numeric,'Q2 customer returns and replacements')
-) v(id,record_date,category,amount,description)
+INSERT INTO financial_records(id,org_id,record_date,category,amount,description,customer_id)
+SELECT v.id,o.id,v.record_date,v.category,v.amount,v.description,v.customer_id FROM organisations o CROSS JOIN (VALUES
+('22222222-2222-3333-4444-555555555555'::uuid,'2026-02-28'::date,'Logistics',18500::numeric,'Expedited Q1 shipments',NULL::uuid),
+('33333333-2222-3333-4444-555555555555'::uuid,'2026-05-31'::date,'Logistics',34750::numeric,'Expedited Q2 shipments',NULL::uuid),
+('44444444-2222-3333-4444-555555555555'::uuid,'2026-05-31'::date,'Returns',12900::numeric,'Q2 customer returns and replacements',NULL::uuid),
+('88888888-2222-3333-4444-555555555555'::uuid,'2026-02-15'::date,'Customer delivery costs',40000::numeric,'Acme Retail Q1 service and delivery costs','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid),
+('99999999-2222-3333-4444-555555555555'::uuid,'2026-05-15'::date,'Customer delivery costs',35000::numeric,'Acme Retail Q2 service and delivery costs','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid),
+('aaaaaaaa-2222-3333-4444-555555555555'::uuid,'2026-02-15'::date,'Customer delivery costs',45000::numeric,'Blue Peak Systems Q1 service and delivery costs','cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid),
+('bbbbbbbb-2222-3333-4444-555555555555'::uuid,'2026-05-15'::date,'Customer delivery costs',48000::numeric,'Blue Peak Systems Q2 service and delivery costs','cccccccc-cccc-cccc-cccc-cccccccccccc'::uuid)
+) v(id,record_date,category,amount,description,customer_id)
 WHERE o.id=(SELECT id FROM organisations ORDER BY created_at LIMIT 1) ON CONFLICT(id) DO NOTHING;
 INSERT INTO operational_records(id,org_id,occurred_at,category,severity,description)
 SELECT v.id,o.id,v.occurred_at,v.category,v.severity,v.description FROM organisations o CROSS JOIN (VALUES

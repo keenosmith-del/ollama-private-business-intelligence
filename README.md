@@ -18,6 +18,8 @@ The sample SQL can be loaded with `docker compose exec -T postgres psql -U pbi -
 
 The frontend provides live business overview, AI Analyst, document upload/library, and structured analytics screens. Viewers can use analysis and analytics; document-library routes are restricted to admins and analysts.
 
+The demonstration includes customer-attributed delivery costs, so the analyst can answer deterministic questions such as “Which customers are least profitable?” and “Which customers are becoming less profitable?” from revenue less recorded direct costs.
+
 Run `python3 scripts/e2e-smoke.py` with Compose running to execute auth, idempotent CSV import, upload, deterministic revenue, semantic search, hybrid analysis, policy retrieval, audit and user-role checks. It reads `PBI_E2E_PASSWORD` and `BOOTSTRAP_TOKEN` from the local `.env` (or accepts `PBI_E2E_PASSWORD` from the process environment). On first run it uses the bootstrap token to create the local admin.
 
 ## API surface (current)

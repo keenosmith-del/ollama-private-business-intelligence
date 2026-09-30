@@ -12,6 +12,7 @@ def test_classifier_routes_hybrid_question():
 def test_classifier_separates_structured_financial_queries():
     assert classify('What are our biggest areas of financial loss?')=='analytics'
     assert classify('Which customers declined the most in Q2?')=='analytics'
+    assert classify('Which customers are becoming less profitable?')=='analytics'
 def test_vector_literal_enforces_database_dimension():
     assert vector_literal([0.0]*768).startswith('[0.0,')
     with pytest.raises(ValueError): vector_literal([0.0]*3)
