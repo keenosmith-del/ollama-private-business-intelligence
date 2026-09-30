@@ -14,6 +14,9 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | GET | `/organisations/me` | authenticated | Read the signed-in user's organisation profile |
 | PATCH | `/organisations/me` | admin | Update the organisation name |
 | GET, DELETE | `/documents`, `/documents/:id` | admin/analyst read; admin delete | List, inspect metadata and delete documents |
+| PATCH | `/documents/:id` | admin | Change a document between organisation-wide and restricted visibility |
+| GET, POST | `/documents/:id/access` | admin | List grants and grant a role or user access |
+| DELETE | `/documents/:id/access/:grantId` | admin | Revoke a document access grant |
 | GET | `/analytics/revenue` | authenticated | Quarterly sales aggregation |
 | GET | `/analytics/operations` | authenticated | Operational incident aggregation |
 | GET | `/customers`, `/financials` | authenticated | Organisation-scoped business records |
@@ -30,3 +33,5 @@ The FastAPI runtime exposes `/health`, `/health/ready`, `/v1/documents/ingest`, 
 The browser holds access tokens in memory and sends the refresh cookie with credentialed requests. Refresh tokens are random, stored as SHA-256 hashes, rotated on use, and scoped to an HttpOnly, SameSite=Strict cookie. Reuse of a revoked token invalidates its session family. Production cookies use the Secure attribute; production deployment still requires TLS.
 
 The Node API runs checked-in SQL migrations at startup. Applied filenames and checksums are tracked in `schema_migrations`; modifying an already-applied migration stops startup, so schema changes should be added as a new numbered file.
+
+Restricted documents are searchable only by their uploader, admins, and explicitly granted users or roles. The same access predicate is applied to document metadata reads, semantic search, and RAG retrieval for analysis.

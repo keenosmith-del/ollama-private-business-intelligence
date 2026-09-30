@@ -16,7 +16,7 @@ This is an in-progress local-first BI system, not a completed portfolio release.
 
 The sample SQL can be loaded with `docker compose exec -T postgres psql -U pbi -d pbi < database/seeds/001_demo.sql` after the organisation exists. It uses fictional customers, quarterly sales, costs and incidents. Import `data/sample/sales-import.csv` through `POST /api/sales/import` for the validated, idempotent structured CSV path. Upload the sample TXT files through `POST /api/documents` to exercise RAG and hybrid analysis.
 
-The frontend provides live business overview, AI Analyst, document upload/library, and structured analytics screens. Viewers can use analysis and analytics; document-library routes are restricted to admins and analysts.
+The frontend provides live business overview, AI Analyst, document upload/library, structured analytics, and admin/audit screens. Viewers can use analysis and analytics; document-library routes are restricted to admins and analysts. Admins can scope restricted documents to selected users or roles.
 
 The demonstration includes customer-attributed delivery costs, so the analyst can answer deterministic questions such as “Which customers are least profitable?” and “Which customers are becoming less profitable?” from revenue less recorded direct costs.
 

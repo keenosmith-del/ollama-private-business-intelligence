@@ -10,6 +10,7 @@ import time
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from typing import Literal
 import httpx
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -29,6 +30,7 @@ class IngestRequest(BaseModel):
     filename:str=Field(min_length=1,max_length=255)
     mimeType:str
     content:str
+    visibility:Literal['organisation','restricted']='organisation'
 class AnalysisRequest(BaseModel):
     question:str=Field(min_length=3,max_length=2000)
 class SalesImportRequest(BaseModel):
@@ -149,7 +151,7 @@ async def ingest(body:IngestRequest,x_org_id:str=Header(),x_user_id:str=Header()
             with conn.cursor() as cur:
                 cur.execute('SELECT id,chunk_count FROM documents WHERE org_id=%s AND content_sha256=%s',(x_org_id,fingerprint)); existing=cur.fetchone()
                 if existing:return {'documentId':str(existing[0]),'filename':body.filename,'status':'ready','chunks':existing[1],'alreadyIndexed':True,'processingMs':0}
-                cur.execute("INSERT INTO documents(id,org_id,uploaded_by,filename,mime_type,status,content_sha256) VALUES (%s,%s,%s,%s,%s,'processing',%s)",(doc_id,x_org_id,x_user_id,body.filename,body.mimeType,fingerprint))
+                cur.execute("INSERT INTO documents(id,org_id,uploaded_by,filename,mime_type,status,content_sha256,visibility) VALUES (%s,%s,%s,%s,%s,'processing',%s,%s)",(doc_id,x_org_id,x_user_id,body.filename,body.mimeType,fingerprint,body.visibility))
                 for ix,(page,text) in enumerate(pieces):
                     vector=await embed(text)
                     cur.execute("INSERT INTO document_chunks(id,org_id,document_id,chunk_index,page_number,content,embedding,metadata) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",(str(uuid.uuid4()),x_org_id,doc_id,ix,page,text,vector_literal(vector),psycopg.types.json.Jsonb({'sourceType':'document','filename':body.filename})))
@@ -181,7 +183,7 @@ def classify(q:str)->str:
     return 'hybrid' if analytic and knowledge else 'analytics' if analytic else 'knowledge'
 
 @app.post('/v1/analysis')
-async def analysis(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(verify_internal)):
+async def analysis(body:AnalysisRequest,x_org_id:str=Header(),x_user_id:str=Header(default=''),x_role:Literal['admin','analyst','viewer']=Header(default='viewer'),_:None=Depends(verify_internal)):
     kind=classify(body.question); findings=[]; sources=[]; metrics=[]; warnings=[]; started=time.perf_counter()
     # Only fixed, parameterized query templates are allowed; model-generated SQL is never executed.
     if kind in ('analytics','hybrid') and any(k in body.question.lower() for k in ['revenue','sales','decline','quarter','q1','q2']):
@@ -246,7 +248,7 @@ async def analysis(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(ver
             with psycopg.connect(DATABASE_URL) as conn:
                 with conn.cursor() as cur:
                     vector=vector_literal(qvec)
-                    cur.execute('SELECT d.id,d.filename,c.page_number,c.content,c.embedding <=> %s::vector AS distance FROM document_chunks c JOIN documents d ON d.id=c.document_id WHERE c.org_id=%s AND c.embedding <=> %s::vector < 0.55 ORDER BY distance LIMIT 5',(vector,x_org_id,vector)); hits=cur.fetchall()
+                    cur.execute("SELECT d.id,d.filename,c.page_number,c.content,c.embedding <=> %s::vector AS distance FROM document_chunks c JOIN documents d ON d.id=c.document_id WHERE c.org_id=%s AND c.embedding <=> %s::vector < 0.55 AND (d.visibility='organisation' OR d.uploaded_by=%s OR %s='admin' OR EXISTS (SELECT 1 FROM document_access da WHERE da.document_id=d.id AND da.org_id=d.org_id AND (da.user_id=%s OR da.role=%s))) ORDER BY distance LIMIT 5",(vector,x_org_id,vector,x_user_id,x_role,x_user_id,x_role)); hits=cur.fetchall()
             for document_id,filename,page,content,_distance in hits: sources.append({'type':'document','id':str(document_id),'name':filename,'page':page}); findings.append(f'[Source: {filename}, page {page or "not available"}] {content}')
             if not hits: warnings.append('No relevant document evidence was found.')
         except Exception: warnings.append('Document search is unavailable.')
@@ -256,12 +258,12 @@ async def analysis(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(ver
     return {'answer':answer,'confidence':'medium' if not warnings else 'low','analysisType':kind,'findings':findings,'sources':sources,'metrics':metrics,'warnings':warnings,'latencyMs':int((time.perf_counter()-started)*1000),'model':OLLAMA_MODEL}
 
 @app.post('/v1/search')
-async def search(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(verify_internal)):
+async def search(body:AnalysisRequest,x_org_id:str=Header(),x_user_id:str=Header(default=''),x_role:Literal['admin','analyst','viewer']=Header(default='viewer'),_:None=Depends(verify_internal)):
     try:
         vector=vector_literal(await embed(body.question))
         with psycopg.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
-                cur.execute('SELECT d.id,d.filename,c.page_number,c.content,c.embedding <=> %s::vector AS distance FROM document_chunks c JOIN documents d ON d.id=c.document_id WHERE c.org_id=%s AND c.embedding <=> %s::vector < 0.55 ORDER BY distance LIMIT 10',(vector,x_org_id,vector)); hits=cur.fetchall()
+                cur.execute("SELECT d.id,d.filename,c.page_number,c.content,c.embedding <=> %s::vector AS distance FROM document_chunks c JOIN documents d ON d.id=c.document_id WHERE c.org_id=%s AND c.embedding <=> %s::vector < 0.55 AND (d.visibility='organisation' OR d.uploaded_by=%s OR %s='admin' OR EXISTS (SELECT 1 FROM document_access da WHERE da.document_id=d.id AND da.org_id=d.org_id AND (da.user_id=%s OR da.role=%s))) ORDER BY distance LIMIT 10",(vector,x_org_id,vector,x_user_id,x_role,x_user_id,x_role)); hits=cur.fetchall()
     except httpx.HTTPError as e: raise HTTPException(503,detail={'code':'EMBEDDING_UNAVAILABLE','message':'Local embedding model is unavailable'}) from e
     except Exception as e: raise HTTPException(503,detail={'code':'SEARCH_UNAVAILABLE','message':'Document search is unavailable'}) from e
     return {'query':body.question,'results':[{'documentId':str(h[0]),'filename':h[1],'page':h[2],'snippet':h[3],'similarity':round(1-float(h[4]),4)} for h in hits]}

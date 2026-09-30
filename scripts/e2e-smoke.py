@@ -31,9 +31,9 @@ def request(path:str,method='GET',body:bytes|None=None,headers:dict|None=None):
 
 def json_body(value):return json.dumps(value).encode()
 
-def upload(token:str,name:str,content:bytes):
+def upload(token:str,name:str,content:bytes,visibility='organisation'):
     boundary='----pbi-'+secrets.token_hex(12)
-    body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: text/plain\r\n\r\n'.encode()+content+f'\r\n--{boundary}--\r\n'.encode())
+    body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: text/plain\r\n\r\n'.encode()+content+f'\r\n--{boundary}\r\nContent-Disposition: form-data; name="visibility"\r\n\r\n{visibility}\r\n--{boundary}--\r\n'.encode())
     return request('/api/documents','POST',body,{'Authorization':'Bearer '+token,'Content-Type':'multipart/form-data; boundary='+boundary})
 
 def import_sales(token:str,content:bytes):
@@ -68,6 +68,9 @@ def main():
     for filename in ('management-report-q2.txt','refund-policy.txt'):
         status,result=upload(token,filename,(ROOT/'data/sample'/filename).read_bytes())
         if status!=201:raise SystemExit(f'Upload {filename} failed with HTTP {status}: {result.get("error",{}).get("code")}')
+    restricted_content=(ROOT/'data/sample/restricted-forecast.txt').read_bytes()
+    status,restricted=upload(token,'restricted-forecast.txt',restricted_content,'restricted')
+    if status!=201 or not restricted.get('data',{}).get('documentId'):raise SystemExit('Restricted document ingestion failed.')
     status,imported=import_sales(token,(ROOT/'data/sample/sales-import.csv').read_bytes())
     if status not in (200,201) or imported.get('data',{}).get('recordsImported')!=3:raise SystemExit('Synthetic sales CSV import failed.')
     status,repeated_import=import_sales(token,(ROOT/'data/sample/sales-import.csv').read_bytes())
@@ -105,12 +108,26 @@ def main():
     viewer_token=viewer_login['data']['accessToken']
     status,_=request('/api/organisations/me','PATCH',json_body({'name':organisation['data']['name']}),{'Authorization':'Bearer '+viewer_token,'Content-Type':'application/json'})
     if status!=403:raise SystemExit('Viewer role was not denied organisation administration.')
+    status,denied_search=request('/api/search','POST',json_body({'question':'violet quartz cipher forecast'}),{'Authorization':'Bearer '+viewer_token,'Content-Type':'application/json'})
+    if status!=200 or any(result.get('filename')=='restricted-forecast.txt' for result in denied_search.get('data',{}).get('results',[])):raise SystemExit('Restricted document appeared in viewer search before access was granted.')
+    status,grant=request(f"/api/documents/{restricted['data']['documentId']}/access",'POST',json_body({'role':'viewer'}),{'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+    if status!=201:raise SystemExit('Admin could not grant document access to a role.')
+    status,allowed_search=request('/api/search','POST',json_body({'question':'violet quartz cipher forecast'}),{'Authorization':'Bearer '+viewer_token,'Content-Type':'application/json'})
+    if status!=200 or not any(result.get('filename')=='restricted-forecast.txt' for result in allowed_search.get('data',{}).get('results',[])):raise SystemExit('Role-based document access grant did not enable retrieval.')
+    status,allowed_analysis=analyse(viewer_token,'Summarise the violet quartz cipher forecast.')
+    if status!=200 or not any(source.get('name')=='restricted-forecast.txt' for source in allowed_analysis.get('data',{}).get('sources',[])):raise SystemExit('Granted restricted document was not available to RAG analysis.')
+    status,_=request(f"/api/documents/{restricted['data']['documentId']}/access/{grant['data']['id']}",'DELETE',headers={'Authorization':'Bearer '+token})
+    if status!=204:raise SystemExit('Admin could not revoke document access.')
+    status,revoked_search=request('/api/search','POST',json_body({'question':'violet quartz cipher forecast'}),{'Authorization':'Bearer '+viewer_token,'Content-Type':'application/json'})
+    if status!=200 or any(result.get('filename')=='restricted-forecast.txt' for result in revoked_search.get('data',{}).get('results',[])):raise SystemExit('Revoked document access remained available in semantic search.')
+    status,revoked_analysis=analyse(viewer_token,'Summarise the violet quartz cipher forecast.')
+    if status!=200 or any(source.get('name')=='restricted-forecast.txt' for source in revoked_analysis.get('data',{}).get('sources',[])):raise SystemExit('Revoked restricted document remained available to RAG analysis.')
     status,_=request('/api/users',headers={'Authorization':'Bearer '+viewer_token})
     if status!=403:raise SystemExit('Viewer role was not denied access to user administration.')
     status,_=request('/api/users/'+viewer['data']['id'],'DELETE',headers={'Authorization':'Bearer '+token})
     if status!=204:raise SystemExit('Admin user disable failed.')
     status,_=request('/api/analytics/revenue',headers={'Authorization':'Bearer '+viewer_token})
     if status!=401:raise SystemExit('Disabled user access token was not revoked.')
-    print(json.dumps({'login':'passed','refreshRotation':'passed','organisationAdministration':'passed','revenue':'passed','customerProfitability':'passed','profitabilityTrend':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed','logout':'passed'}))
+    print(json.dumps({'login':'passed','refreshRotation':'passed','organisationAdministration':'passed','documentAcl':'passed','revenue':'passed','customerProfitability':'passed','profitabilityTrend':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed','logout':'passed'}))
 
 if __name__=='__main__':main()
