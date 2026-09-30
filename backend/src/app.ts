@@ -11,10 +11,12 @@ import {authenticate,allow} from './security.js';
 import {persistAnalysis} from './services/analysis.js';
 import {businessDataRouter} from './routes/business-data.js';
 import {authRouter} from './routes/auth.js';
+import {organisationsRouter} from './routes/organisations.js';
 import {runMigrations} from './migrations.js';
 
 export const app=express(); app.disable('x-powered-by'); app.use(helmet()); app.use(cors({origin:true,credentials:true})); app.use(express.json({limit:'1mb'})); app.use('/api',rateLimit({windowMs:60_000,limit:120,standardHeaders:true,legacyHeaders:false}));
 app.use('/api/auth',authRouter);
+app.use('/api/organisations',organisationsRouter);
 app.use('/api',businessDataRouter);
 app.get('/health',(_req,res)=>res.json({status:'ok'}));
 app.get('/ready',async(_req,res)=>{let postgres='ok';let aiRuntime:unknown={status:'unavailable'};try{await db.query('SELECT 1')}catch{postgres='unavailable'}try{const r=await fetch(`${config.AI_RUNTIME_URL}/health/ready`,{signal:AbortSignal.timeout(2500)});aiRuntime=await r.json()}catch{}const ready=postgres==='ok'&&(aiRuntime as {status?:string}).status==='ready';res.status(ready?200:503).json({status:ready?'ready':'degraded',dependencies:{postgres,aiRuntime}})});

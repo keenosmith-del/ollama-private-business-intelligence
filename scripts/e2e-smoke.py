@@ -61,6 +61,10 @@ def main():
     refresh_after=next((cookie.value for cookie in COOKIE_JAR if cookie.name=='pbi_refresh'),None)
     if status!=200 or not refreshed.get('data',{}).get('accessToken') or refresh_after==refresh_before:raise SystemExit(f'Refresh-token rotation failed with HTTP {status}: {refreshed.get("error",{}).get("code","invalid response")}')
     token=refreshed['data']['accessToken']
+    status,organisation=request('/api/organisations/me',headers={'Authorization':'Bearer '+token})
+    if status!=200 or not organisation.get('data',{}).get('name'):raise SystemExit('Organisation profile read failed.')
+    status,updated_org=request('/api/organisations/me','PATCH',json_body({'name':organisation['data']['name']}),{'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+    if status!=200:raise SystemExit('Admin organisation profile update failed.')
     for filename in ('management-report-q2.txt','refund-policy.txt'):
         status,result=upload(token,filename,(ROOT/'data/sample'/filename).read_bytes())
         if status!=201:raise SystemExit(f'Upload {filename} failed with HTTP {status}: {result.get("error",{}).get("code")}')
@@ -99,12 +103,14 @@ def main():
     status,viewer_login=request('/api/auth/login','POST',json_body({'email':viewer_email,'password':password}),{'Content-Type':'application/json'})
     if status!=200:raise SystemExit('Viewer login failed.')
     viewer_token=viewer_login['data']['accessToken']
+    status,_=request('/api/organisations/me','PATCH',json_body({'name':organisation['data']['name']}),{'Authorization':'Bearer '+viewer_token,'Content-Type':'application/json'})
+    if status!=403:raise SystemExit('Viewer role was not denied organisation administration.')
     status,_=request('/api/users',headers={'Authorization':'Bearer '+viewer_token})
     if status!=403:raise SystemExit('Viewer role was not denied access to user administration.')
     status,_=request('/api/users/'+viewer['data']['id'],'DELETE',headers={'Authorization':'Bearer '+token})
     if status!=204:raise SystemExit('Admin user disable failed.')
     status,_=request('/api/analytics/revenue',headers={'Authorization':'Bearer '+viewer_token})
     if status!=401:raise SystemExit('Disabled user access token was not revoked.')
-    print(json.dumps({'login':'passed','refreshRotation':'passed','revenue':'passed','customerProfitability':'passed','profitabilityTrend':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed','logout':'passed'}))
+    print(json.dumps({'login':'passed','refreshRotation':'passed','organisationAdministration':'passed','revenue':'passed','customerProfitability':'passed','profitabilityTrend':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed','logout':'passed'}))
 
 if __name__=='__main__':main()

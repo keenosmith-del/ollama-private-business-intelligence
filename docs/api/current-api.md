@@ -11,6 +11,8 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | GET | `/auth/me` | authenticated | Return token principal |
 | GET, POST | `/users` | admin | List and create organisation users |
 | DELETE | `/users/:id` | admin | Disable an organisation user |
+| GET | `/organisations/me` | authenticated | Read the signed-in user's organisation profile |
+| PATCH | `/organisations/me` | admin | Update the organisation name |
 | GET, DELETE | `/documents`, `/documents/:id` | admin/analyst read; admin delete | List, inspect metadata and delete documents |
 | GET | `/analytics/revenue` | authenticated | Quarterly sales aggregation |
 | GET | `/analytics/operations` | authenticated | Operational incident aggregation |

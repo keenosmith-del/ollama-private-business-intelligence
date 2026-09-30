@@ -12,7 +12,7 @@ Implemented: signed-in application shell with in-memory bearer-token handling; r
 
 Verified: Node/Python checks and production builds passed; Ruff focused checks passed; Compose rebuilt all services and started the frontend; local browser rendered the sign-in view. Authenticated frontend clicks were not automated because entering account credentials through the browser requires user handoff. The existing API E2E smoke remains the verified authenticated integration path.
 
-Still not complete: organisation administration; document-level ACLs; full audit coverage; retryable ingestion status; persistent observability metrics; broader negative-path and cross-tenant tests; admin/audit frontend surfaces; frontend automated browser tests; Tailwind utility styling; production TLS/secrets/network hardening and deployment guidance.
+Still not complete: document-level ACLs; full audit coverage; retryable ingestion status; persistent observability metrics; broader negative-path and cross-tenant tests; frontend automated browser tests; Tailwind utility styling; production TLS/secrets/network hardening and deployment guidance.
 
 ## Checkpoint 5: rotating refresh sessions
 
@@ -31,6 +31,12 @@ Verification: backend image rebuilt; startup adopted the existing database and r
 Implemented: migration `005_customer_cost_attribution.sql`; fictional per-customer direct costs in the sample seed; deterministic customer gross-profit ranking and Q1-to-Q2 profitability trend queries using separate aggregate CTEs; evidence sources and structured metrics; updated end-to-end assertions.
 
 Verification: Node and Python checks passed; the migration and seed were applied to the local database; `/ready` returned `ready`; the full Ollama-backed workflow passed, including least-profitable customer ranking and customer profit trend.
+
+## Checkpoint 8: organisation and access administration
+
+Implemented: authenticated organisation profile read; admin-only organisation rename with an audit event; viewer-denial coverage; frontend admin workspace for organisation profile, team account creation/disable, and paginated audit reads; admin-only navigation and route guards.
+
+Verification: frontend and backend builds passed; rebuilt Compose services reached ready; the end-to-end smoke workflow passed organisation read/update, viewer denial, user RBAC, analysis, profitability, evidence retrieval, audit reads, and logout.
 
 ## Verification
 
