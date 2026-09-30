@@ -46,7 +46,7 @@ Verification: Node tests/builds, Python tests/lint/compile, and Compose config p
 
 ## Checkpoint 10: privacy-preserving request observability
 
-Implemented: Node gateway and Python AI runtime emit structured request events with method, route path, response status, and elapsed milliseconds. No request bodies, prompts, tokens, or retrieved text are logged. Existing analysis responses continue to include total analysis latency and configured model identifier.
+Implemented: Node gateway and Python AI runtime emit structured request events with method, path (UUID path segments redacted in Node), response status, and elapsed milliseconds. No request bodies, prompts, tokens, or retrieved text are logged. Existing analysis responses continue to include total analysis latency and configured model identifier.
 
 Verification: backend and frontend builds/type checks, 3 Node tests, 7 Python tests, focused Ruff checks, Python compilation, and Compose config passed. The rebuilt Docker stack passed `scripts/e2e-smoke.py` across login/refresh, organisation administration, document ACL deny/grant/revoke, revenue and profitability analytics, search, hybrid and knowledge RAG, audit, user RBAC/disable, and logout. The first smoke invocation raced container startup and got a connection reset; after both services reported ready, the retry passed.
 
