@@ -14,10 +14,11 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | GET | `/analytics/operations` | authenticated | Operational incident aggregation |
 | GET | `/customers`, `/financials` | authenticated | Organisation-scoped business records |
 | POST | `/search` | authenticated | Semantic evidence search |
+| POST | `/sales/import` | admin/analyst | Validated, idempotent CSV sales import (`customer,date,amount`; optional `industry`) |
 | POST | `/documents` | admin/analyst | Parse, chunk, embed and index one supported document |
 | POST | `/analysis` | authenticated | Route question to fixed analytics and/or RAG |
 | GET | `/models` | authenticated | Report AI runtime readiness/model availability |
 | GET | `/audit` | admin | Read paginated organisation audit events |
 | GET | `/health`, `/ready` | public | Liveness and dependency readiness |
 
-The FastAPI runtime exposes `/health`, `/health/ready`, and versioned `/v1/documents/ingest` and `/v1/analysis`. It requires `x-internal-token` plus gateway-supplied organisation/user IDs for data operations. FastAPI publishes interactive OpenAPI at `/docs` inside the Compose network.
+The FastAPI runtime exposes `/health`, `/health/ready`, `/v1/documents/ingest`, `/v1/business-data/sales/import`, `/v1/search` and `/v1/analysis`. It requires `x-internal-token` plus gateway-supplied organisation/user IDs for data operations. FastAPI publishes interactive OpenAPI at `/docs` inside the Compose network.

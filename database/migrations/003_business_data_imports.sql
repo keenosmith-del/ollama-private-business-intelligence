@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS customers_org_name_uq ON customers(org_id,name);
+CREATE TABLE IF NOT EXISTS data_imports(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),uploaded_by uuid NOT NULL REFERENCES users(id),source_filename text NOT NULL,content_sha256 text NOT NULL,record_count integer NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(org_id,content_sha256));

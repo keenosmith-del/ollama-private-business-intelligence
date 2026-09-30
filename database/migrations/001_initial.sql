@@ -16,6 +16,7 @@ CREATE TABLE document_chunks(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_i
 CREATE INDEX document_chunks_embedding_idx ON document_chunks USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX document_chunks_org_idx ON document_chunks(org_id);
 CREATE TABLE customers(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),name text NOT NULL,industry text);
+CREATE UNIQUE INDEX customers_org_name_uq ON customers(org_id,name);
 CREATE TABLE sales(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),customer_id uuid REFERENCES customers(id),sale_date date NOT NULL,amount numeric(14,2) NOT NULL CHECK(amount>=0));
 CREATE INDEX sales_org_date_idx ON sales(org_id,sale_date);
 CREATE TABLE financial_records(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),record_date date NOT NULL,category text NOT NULL,amount numeric(14,2) NOT NULL,description text);
@@ -24,3 +25,4 @@ CREATE TABLE business_metrics(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_
 CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid REFERENCES organisations(id),actor_id uuid REFERENCES users(id),event_type text NOT NULL,metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE ai_analysis_requests(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),user_id uuid NOT NULL REFERENCES users(id),question_hash text NOT NULL,analysis_type text,status text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE ai_analysis_results(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),request_id uuid NOT NULL REFERENCES ai_analysis_requests(id) ON DELETE CASCADE,result jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE data_imports(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),org_id uuid NOT NULL REFERENCES organisations(id),uploaded_by uuid NOT NULL REFERENCES users(id),source_filename text NOT NULL,content_sha256 text NOT NULL,record_count integer NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(org_id,content_sha256));

@@ -14,9 +14,9 @@ This is an in-progress foundation and initial backend vertical slice, not a comp
 4. Create the first admin using `POST /api/auth/bootstrap` with header `x-bootstrap-token` and JSON `{ "organisation": "Northstar Components", "email": "admin@example.test", "password": "use-a-long-unique-password" }`. Bootstrap closes once the first user exists.
 5. Sign in at `POST /api/auth/login`. FastAPI publishes OpenAPI and Swagger docs at `/docs` on the private Compose network; the AI runtime has no host-published port.
 
-The sample SQL can be loaded with `docker compose exec -T postgres psql -U pbi -d pbi < database/seeds/001_demo.sql` after the organisation exists. It uses fictional customers, quarterly sales, costs and incidents. After login, upload `data/sample/refund-policy.txt` and `data/sample/management-report-q2.txt` to `/api/documents` to exercise the RAG and hybrid paths.
+The sample SQL can be loaded with `docker compose exec -T postgres psql -U pbi -d pbi < database/seeds/001_demo.sql` after the organisation exists. It uses fictional customers, quarterly sales, costs and incidents. Import `data/sample/sales-import.csv` through `POST /api/sales/import` for the validated, idempotent structured CSV path. Upload the sample TXT files through `POST /api/documents` to exercise RAG and hybrid analysis.
 
-Run `python3 scripts/e2e-smoke.py` with Compose running to execute the auth, upload, deterministic revenue, hybrid analysis, policy retrieval, audit and user-role smoke workflow. It reads `PBI_E2E_PASSWORD` and `BOOTSTRAP_TOKEN` from the local `.env` (or accepts `PBI_E2E_PASSWORD` from the process environment). On first run it uses the bootstrap token to create the local admin.
+Run `python3 scripts/e2e-smoke.py` with Compose running to execute auth, idempotent CSV import, upload, deterministic revenue, semantic search, hybrid analysis, policy retrieval, audit and user-role checks. It reads `PBI_E2E_PASSWORD` and `BOOTSTRAP_TOKEN` from the local `.env` (or accepts `PBI_E2E_PASSWORD` from the process environment). On first run it uses the bootstrap token to create the local admin.
 
 ## API surface (current)
 

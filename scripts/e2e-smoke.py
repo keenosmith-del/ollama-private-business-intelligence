@@ -34,6 +34,11 @@ def upload(token:str,name:str,content:bytes):
     body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: text/plain\r\n\r\n'.encode()+content+f'\r\n--{boundary}--\r\n'.encode())
     return request('/api/documents','POST',body,{'Authorization':'Bearer '+token,'Content-Type':'multipart/form-data; boundary='+boundary})
 
+def import_sales(token:str,content:bytes):
+    boundary='----pbi-'+secrets.token_hex(12)
+    body=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="sales-import.csv"\r\nContent-Type: text/csv\r\n\r\n'.encode()+content+f'\r\n--{boundary}--\r\n'.encode())
+    return request('/api/sales/import','POST',body,{'Authorization':'Bearer '+token,'Content-Type':'multipart/form-data; boundary='+boundary})
+
 def analyse(token:str,question:str):
     return request('/api/analysis','POST',json_body({'question':question}),{'Authorization':'Bearer '+token,'Content-Type':'application/json'})
 
@@ -52,6 +57,10 @@ def main():
     for filename in ('management-report-q2.txt','refund-policy.txt'):
         status,result=upload(token,filename,(ROOT/'data/sample'/filename).read_bytes())
         if status!=201:raise SystemExit(f'Upload {filename} failed with HTTP {status}: {result.get("error",{}).get("code")}')
+    status,imported=import_sales(token,(ROOT/'data/sample/sales-import.csv').read_bytes())
+    if status not in (200,201) or imported.get('data',{}).get('recordsImported')!=3:raise SystemExit('Synthetic sales CSV import failed.')
+    status,repeated_import=import_sales(token,(ROOT/'data/sample/sales-import.csv').read_bytes())
+    if status!=200 or not repeated_import.get('data',{}).get('alreadyImported'):raise SystemExit('Repeated sales import was not deduplicated.')
     for path in ('/api/users','/api/documents','/api/customers','/api/financials','/api/analytics/operations'):
         status,_=request(path,headers={'Authorization':'Bearer '+token})
         if status!=200:raise SystemExit(f'Admin data endpoint {path} failed with HTTP {status}.')
@@ -61,6 +70,8 @@ def main():
     if status!=200 or not search.get('data',{}).get('results'):raise SystemExit('Semantic search failed its evidence assertion.')
     status,hybrid=analyse(token,'Why did revenue fall in Q2?')
     if status!=200 or hybrid.get('data',{}).get('analysisType')!='hybrid' or not hybrid.get('data',{}).get('sources'):raise SystemExit('Hybrid analysis failed its evidence assertions.')
+    q2_change=next((m.get('value') for m in hybrid['data'].get('metrics',[]) if m.get('metric')=='q2_change_percent'),None)
+    if q2_change!=-40.09:raise SystemExit(f'Q2 comparison selected the wrong quarters: {q2_change}')
     status,knowledge=analyse(token,'What does our refund policy say?')
     if status!=200 or knowledge.get('data',{}).get('analysisType')!='knowledge' or not knowledge.get('data',{}).get('sources'):raise SystemExit('Knowledge retrieval failed its source assertion.')
     status,audit=request('/api/audit',headers={'Authorization':'Bearer '+token})

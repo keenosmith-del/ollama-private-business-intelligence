@@ -1,5 +1,7 @@
 from __future__ import annotations
 import base64, csv, hashlib, hmac, io, os, re, time, uuid
+from datetime import date
+from decimal import Decimal, InvalidOperation
 import httpx
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -21,6 +23,9 @@ class IngestRequest(BaseModel):
     content:str
 class AnalysisRequest(BaseModel):
     question:str=Field(min_length=3,max_length=2000)
+class SalesImportRequest(BaseModel):
+    filename:str=Field(min_length=1,max_length=255)
+    content:str
 
 def extract_text(filename:str,raw:bytes)->list[tuple[int|None,str]]:
     ext=filename.lower().rsplit('.',1)[-1] if '.' in filename else ''
@@ -68,6 +73,34 @@ def chunk_text(text:str,size:int=1100,overlap:int=140)->list[str]:
 def vector_literal(values:list[float])->str:
     if len(values)!=768: raise ValueError('Embedding model must return vectors with 768 dimensions')
     return '['+','.join(str(float(v)) for v in values)+']'
+
+def parse_sales_csv(raw:bytes)->list[dict[str,object]]:
+    try: text=raw.decode('utf-8-sig')
+    except UnicodeDecodeError as e: raise HTTPException(422,detail={'code':'CSV_ENCODING_ERROR','message':'CSV must use UTF-8 encoding'}) from e
+    reader=csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames: raise HTTPException(422,detail={'code':'CSV_HEADER_REQUIRED','message':'CSV must include customer, date and amount columns'})
+    normalized={name.strip().lower().replace(' ','_'):name for name in reader.fieldnames if name}
+    customer_col=next((normalized[n] for n in ('customer','customer_name') if n in normalized),None)
+    date_col=next((normalized[n] for n in ('date','sale_date') if n in normalized),None)
+    amount_col=next((normalized[n] for n in ('amount','revenue') if n in normalized),None)
+    industry_col=normalized.get('industry')
+    if not customer_col or not date_col or not amount_col: raise HTTPException(422,detail={'code':'CSV_COLUMNS_REQUIRED','message':'CSV must include customer, date and amount columns'})
+    rows=[]; errors=[]
+    for line,row in enumerate(reader,start=2):
+        if not any(str(value or '').strip() for value in row.values()): continue
+        try:
+            customer=(row.get(customer_col) or '').strip()
+            if not customer: raise ValueError('customer is empty')
+            sale_date=date.fromisoformat((row.get(date_col) or '').strip())
+            amount=Decimal((row.get(amount_col) or '').strip())
+            if not amount.is_finite() or amount<0: raise ValueError('amount must be a non-negative number')
+            if amount>Decimal('999999999999.99') or amount.quantize(Decimal('0.01'))!=amount: raise ValueError('amount exceeds the supported precision')
+            rows.append({'customer':customer,'date':sale_date,'amount':amount,'industry':(row.get(industry_col) or '').strip() or None if industry_col else None})
+        except (ValueError,InvalidOperation) as e: errors.append(line)
+        if len(rows)+len(errors)>10000: raise HTTPException(413,detail={'code':'CSV_ROW_LIMIT','message':'CSV may contain at most 10,000 data rows'})
+    if errors: raise HTTPException(422,detail={'code':'CSV_ROWS_INVALID','message':'CSV contains invalid rows','lines':errors[:20]})
+    if not rows: raise HTTPException(422,detail={'code':'CSV_EMPTY','message':'CSV contains no business records'})
+    return rows
 
 async def embed(text:str)->list[float]:
     async with httpx.AsyncClient(timeout=90) as c:
@@ -117,6 +150,24 @@ async def ingest(body:IngestRequest,x_org_id:str=Header(),x_user_id:str=Header()
     except Exception as e: raise HTTPException(503,detail={'code':'STORAGE_UNAVAILABLE','message':'Document storage is unavailable'}) from e
     return {'documentId':doc_id,'filename':body.filename,'status':'ready','chunks':len(pieces),'alreadyIndexed':False,'processingMs':int((time.perf_counter()-started)*1000)}
 
+@app.post('/v1/business-data/sales/import')
+async def import_sales(body:SalesImportRequest,x_org_id:str=Header(),x_user_id:str=Header(),_:None=Depends(verify_internal)):
+    if not body.filename.lower().endswith('.csv'): raise HTTPException(415,detail={'code':'UNSUPPORTED_IMPORT','message':'Sales import requires a CSV file'})
+    try: raw=base64.b64decode(body.content,validate=True)
+    except Exception as e: raise HTTPException(400,detail={'code':'INVALID_UPLOAD','message':'CSV content is invalid'}) from e
+    rows=parse_sales_csv(raw); fingerprint=hashlib.sha256(raw).hexdigest()
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute('SELECT id,record_count FROM data_imports WHERE org_id=%s AND content_sha256=%s',(x_org_id,fingerprint)); existing=cur.fetchone()
+                if existing:return {'importId':str(existing[0]),'filename':body.filename,'recordsImported':existing[1],'alreadyImported':True}
+                cur.execute('INSERT INTO data_imports(org_id,uploaded_by,source_filename,content_sha256,record_count) VALUES(%s,%s,%s,%s,%s) RETURNING id',(x_org_id,x_user_id,body.filename,fingerprint,len(rows))); import_id=str(cur.fetchone()[0])
+                for row in rows:
+                    cur.execute('INSERT INTO customers(org_id,name,industry) VALUES(%s,%s,%s) ON CONFLICT(org_id,name) DO UPDATE SET industry=coalesce(EXCLUDED.industry,customers.industry) RETURNING id',(x_org_id,row['customer'],row['industry'])); customer_id=cur.fetchone()[0]
+                    cur.execute('INSERT INTO sales(org_id,customer_id,sale_date,amount) VALUES(%s,%s,%s,%s)',(x_org_id,customer_id,row['date'],row['amount']))
+    except Exception as e: raise HTTPException(503,detail={'code':'IMPORT_STORAGE_UNAVAILABLE','message':'Sales data could not be stored'}) from e
+    return {'importId':import_id,'filename':body.filename,'recordsImported':len(rows),'alreadyImported':False}
+
 def classify(q:str)->str:
     s=q.lower(); analytic=any(k in s for k in ['revenue','sales','customer','profit','financial','cost','q1','q2','quarter','decline','loss','expense','operational','incident']); knowledge=any(k in s for k in ['policy','report','document','management','says','cause','risk','operational','refund','summarise','summarize','why','caused','causes','contributed'])
     return 'hybrid' if analytic and knowledge else 'analytics' if analytic else 'knowledge'
@@ -131,9 +182,15 @@ async def analysis(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(ver
                 with conn.cursor() as cur:
                     cur.execute("SELECT date_trunc('quarter',sale_date)::date, sum(amount)::numeric(14,2) FROM sales WHERE org_id=%s GROUP BY 1 ORDER BY 1",(x_org_id,)); rows=cur.fetchall()
             metrics=[{'quarter':str(r[0]),'revenue':float(r[1])} for r in rows]
-            if len(metrics)>=2 and metrics[-2]['revenue']:
-                change=(metrics[-1]['revenue']-metrics[-2]['revenue'])/metrics[-2]['revenue']*100
-                metrics.append({'metric':'latest_quarter_change_percent','value':round(change,2)})
+            question=body.question.lower(); quarter_match=re.search(r'\bq([1-4])\b|\bquarter\s*([1-4])\b',question); requested=int(next(value for value in quarter_match.groups() if value)) if quarter_match else None; year_match=re.search(r'20\d{2}',question)
+            eligible=[i for i,m in enumerate(metrics) if not year_match or str(m['quarter']).startswith(year_match.group())]
+            target=eligible[-1] if eligible else None
+            if requested:
+                target=next((i for i in reversed(eligible) if int(str(metrics[i]['quarter'])[5:7])==(requested-1)*3+1),None)
+            previous=target-1 if target is not None else None
+            if target is not None and previous is not None and metrics[previous]['revenue']:
+                change=(metrics[target]['revenue']-metrics[previous]['revenue'])/metrics[previous]['revenue']*100
+                metrics.append({'metric':f'q{requested or "latest"}_change_percent','value':round(change,2)})
             findings.append(f'Revenue by quarter: {metrics}'); sources.append({'type':'dataset','name':'sales','description':'Quarterly revenue aggregation'})
         except Exception: warnings.append('Structured sales data is unavailable; no financial conclusion was computed.')
     if kind in ('analytics','hybrid') and 'customer' in body.question.lower():
