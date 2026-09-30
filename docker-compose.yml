@@ -3,7 +3,7 @@ services:
     image: pgvector/pgvector:pg16
     environment: {POSTGRES_DB: pbi, POSTGRES_USER: pbi, POSTGRES_PASSWORD: pbi-local-only}
     ports: ["5432:5432"]
-    volumes: ["postgres-data:/var/lib/postgresql/data", "./database/migrations:/docker-entrypoint-initdb.d:ro"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
     healthcheck: {test: ["CMD-SHELL", "pg_isready -U pbi -d pbi"], interval: 5s, timeout: 3s, retries: 10}
   ollama:
     image: ollama/ollama:latest
@@ -15,7 +15,7 @@ services:
     environment: {DATABASE_URL: "postgresql://pbi:pbi-local-only@postgres:5432/pbi", OLLAMA_BASE_URL: "http://ollama:11434"}
     depends_on: {postgres: {condition: service_healthy}, ollama: {condition: service_started}}
   backend:
-    build: ./backend
+    build: {context: ., dockerfile: backend/Dockerfile}
     env_file: .env
     environment: {DATABASE_URL: "postgresql://pbi:pbi-local-only@postgres:5432/pbi", AI_RUNTIME_URL: "http://ai-runtime:8000"}
     depends_on: {postgres: {condition: service_healthy}, ai-runtime: {condition: service_started}}
