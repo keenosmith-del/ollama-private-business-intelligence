@@ -1,0 +1,3 @@
+Northstar Components — Q2 2026 Management Report (fictional demonstration data)
+
+Revenue from recorded sales declined from $212,000 in Q1 to $127,000 in Q2. Acme Retail revenue fell from $120,000 to $76,000, while Blue Peak Systems fell from $92,000 to $51,000. Management attributed the decline to delayed component deliveries and softer reorder demand. The logistics category rose from $18,500 in Q1 to $34,750 in Q2, with a further $12,900 in returns and replacements. Two late deliveries from the same supplier and a 74-minute order processing outage increased operational risk. Management recommends qualifying a second supplier and improving order-system monitoring.
