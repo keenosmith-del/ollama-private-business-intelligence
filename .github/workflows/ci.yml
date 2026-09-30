@@ -47,4 +47,6 @@ jobs:
           python -m compileall -q ai-runtime/app ai-runtime/tests scripts
 
       - name: Validate Docker Compose configuration
-        run: docker compose config --quiet
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
