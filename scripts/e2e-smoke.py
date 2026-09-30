@@ -1,6 +1,7 @@
 """Run the local auth, upload, SQL, RAG, and hybrid workflow against Compose."""
 import json
 import os
+import http.cookiejar
 from pathlib import Path
 import secrets
 import urllib.error
@@ -9,6 +10,8 @@ import urllib.request
 ROOT=Path(__file__).resolve().parents[1]
 BASE_URL=os.getenv('PBI_API_URL','http://localhost:3000').rstrip('/')
 EMAIL=os.getenv('PBI_E2E_EMAIL','admin@example.test')
+COOKIE_JAR=http.cookiejar.CookieJar()
+OPENER=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
 
 def local_env(key:str)->str|None:
     env_path=ROOT/'.env'
@@ -21,7 +24,7 @@ def local_env(key:str)->str|None:
 def request(path:str,method='GET',body:bytes|None=None,headers:dict|None=None):
     req=urllib.request.Request(BASE_URL+path,data=body,headers=headers or {},method=method)
     try:
-        with urllib.request.urlopen(req,timeout=240) as response:
+        with OPENER.open(req,timeout=240) as response:
             payload=response.read()
             return response.status,json.loads(payload) if payload else {}
     except urllib.error.HTTPError as error:return error.code,json.loads(error.read())
@@ -53,6 +56,11 @@ def main():
         status,login=request('/api/auth/login','POST',json_body({'email':EMAIL,'password':password}),{'Content-Type':'application/json'})
     if status!=200:raise SystemExit(f'Login failed with HTTP {status}.')
     token=login['data']['accessToken']
+    refresh_before=next((cookie.value for cookie in COOKIE_JAR if cookie.name=='pbi_refresh'),None)
+    status,refreshed=request('/api/auth/refresh','POST')
+    refresh_after=next((cookie.value for cookie in COOKIE_JAR if cookie.name=='pbi_refresh'),None)
+    if status!=200 or not refreshed.get('data',{}).get('accessToken') or refresh_after==refresh_before:raise SystemExit(f'Refresh-token rotation failed with HTTP {status}: {refreshed.get("error",{}).get("code","invalid response")}')
+    token=refreshed['data']['accessToken']
     for filename in ('management-report-q2.txt','refund-policy.txt'):
         status,result=upload(token,filename,(ROOT/'data/sample'/filename).read_bytes())
         if status!=201:raise SystemExit(f'Upload {filename} failed with HTTP {status}: {result.get("error",{}).get("code")}')
@@ -75,6 +83,10 @@ def main():
     if status!=200 or knowledge.get('data',{}).get('analysisType')!='knowledge' or not knowledge.get('data',{}).get('sources'):raise SystemExit('Knowledge retrieval failed its source assertion.')
     status,audit=request('/api/audit',headers={'Authorization':'Bearer '+token})
     if status!=200 or not audit.get('data'):raise SystemExit('Audit event read failed its evidence assertion.')
+    status,_=request('/api/auth/logout','POST')
+    if status!=204:raise SystemExit('Logout did not revoke the refresh session.')
+    status,_=request('/api/auth/refresh','POST')
+    if status!=401:raise SystemExit('A logged-out refresh session remained active.')
     viewer_email='e2e-'+secrets.token_hex(5)+'@example.test'
     status,viewer=request('/api/users','POST',json_body({'email':viewer_email,'password':password,'role':'viewer'}),{'Authorization':'Bearer '+token,'Content-Type':'application/json'})
     if status!=201:raise SystemExit('Admin user creation failed.')
@@ -87,6 +99,6 @@ def main():
     if status!=204:raise SystemExit('Admin user disable failed.')
     status,_=request('/api/analytics/revenue',headers={'Authorization':'Bearer '+viewer_token})
     if status!=401:raise SystemExit('Disabled user access token was not revoked.')
-    print(json.dumps({'login':'passed','revenue':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed'}))
+    print(json.dumps({'login':'passed','refreshRotation':'passed','revenue':'passed','search':'passed','hybrid':'passed','hybridSources':len(hybrid['data']['sources']),'knowledge':'passed','knowledgeSources':len(knowledge['data']['sources']),'audit':'passed','userRbacAndDisable':'passed','logout':'passed'}))
 
 if __name__=='__main__':main()

@@ -5,7 +5,9 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | Method | Path | Access | Purpose |
 | --- | --- | --- | --- |
 | POST | `/auth/bootstrap` | one-time bootstrap secret | Provision first organisation admin |
-| POST | `/auth/login` | public, rate-limited | Issue 30-minute access token |
+| POST | `/auth/login` | public, rate-limited | Issue a 30-minute access token and an HttpOnly refresh cookie |
+| POST | `/auth/refresh` | refresh cookie | Rotate the 14-day refresh session and issue a new access token |
+| POST | `/auth/logout` | refresh cookie | Revoke the current refresh session and clear its cookie |
 | GET | `/auth/me` | authenticated | Return token principal |
 | GET, POST | `/users` | admin | List and create organisation users |
 | DELETE | `/users/:id` | admin | Disable an organisation user |
@@ -22,3 +24,5 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | GET | `/health`, `/ready` | public | Liveness and dependency readiness |
 
 The FastAPI runtime exposes `/health`, `/health/ready`, `/v1/documents/ingest`, `/v1/business-data/sales/import`, `/v1/search` and `/v1/analysis`. It requires `x-internal-token` plus gateway-supplied organisation/user IDs for data operations. FastAPI publishes interactive OpenAPI at `/docs` inside the Compose network.
+
+The browser holds access tokens in memory and sends the refresh cookie with credentialed requests. Refresh tokens are random, stored as SHA-256 hashes, rotated on use, and scoped to an HttpOnly, SameSite=Strict cookie. Reuse of a revoked token invalidates its session family. Production cookies use the Secure attribute; production deployment still requires TLS.

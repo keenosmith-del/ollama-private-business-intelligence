@@ -12,7 +12,13 @@ Implemented: signed-in application shell with in-memory bearer-token handling; r
 
 Verified: Node/Python checks and production builds passed; Ruff focused checks passed; Compose rebuilt all services and started the frontend; local browser rendered the sign-in view. Authenticated frontend clicks were not automated because entering account credentials through the browser requires user handoff. The existing API E2E smoke remains the verified authenticated integration path.
 
-Still not complete: refresh-token lifecycle and backend logout; organisation administration; document-level ACLs; migration runner/version tracking; broader analytical support (including profitability); full audit coverage; retryable ingestion status; persistent observability metrics; broader negative-path and cross-tenant tests; admin/audit frontend surfaces; frontend automated browser tests; Tailwind utility styling; production TLS/secrets/network hardening and deployment guidance.
+Still not complete: organisation administration; document-level ACLs; migration runner/version tracking; broader analytical support (including profitability); full audit coverage; retryable ingestion status; persistent observability metrics; broader negative-path and cross-tenant tests; admin/audit frontend surfaces; frontend automated browser tests; Tailwind utility styling; production TLS/secrets/network hardening and deployment guidance.
+
+## Checkpoint 5: rotating refresh sessions
+
+Implemented: HttpOnly SameSite=Strict refresh cookie; random refresh secrets stored only as SHA-256 hashes; 14-day session lifetime; rotation on use; replay detection that revokes the token family; logout revocation; disabled-account rejection on refresh; refresh/logout audit events; credentialed API client with single-flight refresh and memory-only access token; startup session restore after page reload; additive migration `004_refresh_sessions.sql`.
+
+Verification: TypeScript and frontend type checks passed; Python suite (7 tests), focused Ruff checks, compilation and Compose config passed; migration applied to the local database. The rebuilt Compose stack passed `scripts/e2e-smoke.py`, including a rotated refresh cookie, grounded search and analysis, role restrictions, and logout revocation.
 
 ## Verification
 

@@ -29,7 +29,7 @@ Run `python3 scripts/e2e-smoke.py` with Compose running to execute auth, idempot
 - `POST /api/analysis` (`{ "question": "..." }`)
 - `GET /api/models`
 
-Every normal API call uses `Authorization: Bearer <accessToken>`. The runtime is intended to be private to the Compose network; it currently trusts the Node gateway's organisation headers and must not be exposed publicly.
+Normal API calls use `Authorization: Bearer <accessToken>`. Access tokens are held in frontend memory; an HttpOnly cookie supports refresh-token rotation and logout. The runtime is intended to be private to the Compose network; it currently trusts the Node gateway's organisation headers and must not be exposed publicly.
 
 ## Privacy boundary
 

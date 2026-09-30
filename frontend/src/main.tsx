@@ -2,7 +2,7 @@ import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Activity, ArrowDownRight, ArrowRight, BarChart3, Check, ChevronDown, CircleHelp, FileText, LayoutDashboard, LoaderCircle, LogOut, Search, ShieldCheck, Sparkles, Upload, Users, X } from 'lucide-react';
-import { api, analyse, signIn, setAccessToken, type AnalysisResponse } from './api';
+import { api, analyse, signIn, signOut, refreshAccessToken, setAccessToken, type AnalysisResponse } from './api';
 import './style.css';
 
 type User = { id: string; email: string; role: string; orgId?: string };
@@ -12,10 +12,11 @@ type Document = { id: string; filename: string; mime_type: string; status: strin
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [booting, setBooting] = useState(true);
-  useEffect(() => { setBooting(false); }, []);
+  useEffect(() => { let active = true; void refreshAccessToken().then(session => { if (active && session) setUser(session.user); }).finally(() => { if (active) setBooting(false); }); return () => { active = false; }; }, []);
   if (booting) return <div className="center-state"><LoaderCircle className="spin" /></div>;
   if (!user) return <Login onLogin={(u, token) => { setAccessToken(token); setUser(u); }} />;
-  return <BrowserRouter><Workspace user={user} onLogout={() => { setAccessToken(undefined); setUser(null); }} /></BrowserRouter>;
+  async function logout() { try { await signOut(); } finally { setAccessToken(undefined); setUser(null); } }
+  return <BrowserRouter><Workspace user={user} onLogout={logout} /></BrowserRouter>;
 }
 
 function Login({ onLogin }: { onLogin: (user: User, token: string) => void }) {
@@ -24,7 +25,7 @@ function Login({ onLogin }: { onLogin: (user: User, token: string) => void }) {
   return <div className="login-page"><div className="login-aside"><div className="brand-mark"><ShieldCheck size={20} /></div><div className="login-copy"><span className="eyebrow">PRIVATE BUSINESS INTELLIGENCE</span><h1>Clarity for your business.<br /><em>Privacy by design.</em></h1><p>Ask questions across business data and internal documents. Every answer stays inside your organisation’s local AI environment.</p><div className="privacy-note"><span className="privacy-dot" /> Local inference · Evidence attached · Access controlled</div></div><div className="login-foot">OLLAMA PRIVATE BUSINESS INTELLIGENCE <span>v0.1</span></div></div><section className="login-panel"><form onSubmit={submit} className="login-form"><span className="eyebrow">WELCOME BACK</span><h2>Sign in to your workspace</h2><p className="muted">Use your organisation account to continue.</p><label>Email address<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" /></label><label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" /></label>{error && <div className="alert error"><CircleHelp size={16} />{error}</div>}<button className="button primary full" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : null} Sign in <ArrowRight size={16} /></button><div className="login-security"><ShieldCheck size={15} /> Your session is protected with role-based access.</div></form></section></div>;
 }
 
-function Workspace({ user, onLogout }: { user: User; onLogout: () => void }) {
+function Workspace({ user, onLogout }: { user: User; onLogout: () => Promise<void> }) {
   const location = useLocation();
   const active = location.pathname.split('/')[1] || 'overview';
   const items = [{ to: '/', label: 'Overview', icon: LayoutDashboard }, { to: '/analyst', label: 'AI Analyst', icon: Sparkles }, ...(user.role === 'viewer' ? [] : [{ to: '/documents', label: 'Documents', icon: FileText }]), { to: '/analytics', label: 'Analytics', icon: BarChart3 }];
