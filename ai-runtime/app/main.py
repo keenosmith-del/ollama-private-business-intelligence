@@ -1,5 +1,5 @@
 from __future__ import annotations
-import base64, csv, hmac, io, os, re, time, uuid
+import base64, csv, hashlib, hmac, io, os, re, time, uuid
 import httpx
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -102,21 +102,23 @@ async def ingest(body:IngestRequest,x_org_id:str=Header(),x_user_id:str=Header()
     except Exception as e: raise HTTPException(400,detail={'code':'DOCUMENT_PARSE_ERROR','message':'Document could not be parsed'}) from e
     pieces=[(page,chunk) for page,text in pages for chunk in chunk_text(text)]
     if not pieces: raise HTTPException(422,detail={'code':'EMPTY_DOCUMENT','message':'No extractable text was found'})
-    doc_id=str(uuid.uuid4()); started=time.perf_counter()
+    doc_id=str(uuid.uuid4()); started=time.perf_counter(); fingerprint=hashlib.sha256(raw).hexdigest()
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
-                cur.execute("INSERT INTO documents(id,org_id,uploaded_by,filename,mime_type,status) VALUES (%s,%s,%s,%s,%s,'processing')",(doc_id,x_org_id,x_user_id,body.filename,body.mimeType))
+                cur.execute('SELECT id,chunk_count FROM documents WHERE org_id=%s AND content_sha256=%s',(x_org_id,fingerprint)); existing=cur.fetchone()
+                if existing:return {'documentId':str(existing[0]),'filename':body.filename,'status':'ready','chunks':existing[1],'alreadyIndexed':True,'processingMs':0}
+                cur.execute("INSERT INTO documents(id,org_id,uploaded_by,filename,mime_type,status,content_sha256) VALUES (%s,%s,%s,%s,%s,'processing',%s)",(doc_id,x_org_id,x_user_id,body.filename,body.mimeType,fingerprint))
                 for ix,(page,text) in enumerate(pieces):
                     vector=await embed(text)
                     cur.execute("INSERT INTO document_chunks(id,org_id,document_id,chunk_index,page_number,content,embedding,metadata) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",(str(uuid.uuid4()),x_org_id,doc_id,ix,page,text,vector_literal(vector),psycopg.types.json.Jsonb({'sourceType':'document','filename':body.filename})))
                 cur.execute("UPDATE documents SET status='ready',chunk_count=%s WHERE id=%s",(len(pieces),doc_id))
     except httpx.HTTPError as e: raise HTTPException(503,detail={'code':'EMBEDDING_UNAVAILABLE','message':'Local embedding model is unavailable'}) from e
     except Exception as e: raise HTTPException(503,detail={'code':'STORAGE_UNAVAILABLE','message':'Document storage is unavailable'}) from e
-    return {'documentId':doc_id,'filename':body.filename,'status':'ready','chunks':len(pieces),'processingMs':int((time.perf_counter()-started)*1000)}
+    return {'documentId':doc_id,'filename':body.filename,'status':'ready','chunks':len(pieces),'alreadyIndexed':False,'processingMs':int((time.perf_counter()-started)*1000)}
 
 def classify(q:str)->str:
-    s=q.lower(); analytic=any(k in s for k in ['revenue','sales','customer','profit','financial','cost','q1','q2','quarter','decline','loss']); knowledge=any(k in s for k in ['policy','report','document','management','says','cause','risk','operational','refund','summarise','summarize','why','caused','causes','contributed'])
+    s=q.lower(); analytic=any(k in s for k in ['revenue','sales','customer','profit','financial','cost','q1','q2','quarter','decline','loss','expense','operational','incident']); knowledge=any(k in s for k in ['policy','report','document','management','says','cause','risk','operational','refund','summarise','summarize','why','caused','causes','contributed'])
     return 'hybrid' if analytic and knowledge else 'analytics' if analytic else 'knowledge'
 
 @app.post('/v1/analysis')
@@ -138,9 +140,32 @@ async def analysis(body:AnalysisRequest,x_org_id:str=Header(),_:None=Depends(ver
         try:
             with psycopg.connect(DATABASE_URL) as conn:
                 with conn.cursor() as cur:
-                    cur.execute('SELECT c.name,sum(s.amount)::numeric(14,2) AS revenue FROM sales s JOIN customers c ON c.id=s.customer_id WHERE s.org_id=%s GROUP BY c.name ORDER BY revenue DESC LIMIT 5',(x_org_id,)); rows=cur.fetchall()
-            metrics=[{'customer':r[0],'revenue':float(r[1])} for r in rows]; findings.append(f'Top customers by recorded revenue: {metrics}'); sources.append({'type':'dataset','name':'sales and customers','description':'Customer revenue ranking'})
+                    if any(word in body.question.lower() for word in ['declin','drop','fell','fall']):
+                        cur.execute("SELECT c.name,coalesce(sum(s.amount) FILTER(WHERE s.sale_date >= DATE '2026-01-01' AND s.sale_date < DATE '2026-04-01'),0)::numeric(14,2),coalesce(sum(s.amount) FILTER(WHERE s.sale_date >= DATE '2026-04-01' AND s.sale_date < DATE '2026-07-01'),0)::numeric(14,2) FROM customers c LEFT JOIN sales s ON s.customer_id=c.id AND s.org_id=c.org_id WHERE c.org_id=%s GROUP BY c.name ORDER BY c.name",(x_org_id,)); rows=cur.fetchall()
+                        rows.sort(key=lambda r: float(r[1])-float(r[2]),reverse=True); rows=rows[:5]
+                        metrics.extend({'customer':r[0],'q1Revenue':float(r[1]),'q2Revenue':float(r[2]),'change':float(r[2]-r[1])} for r in rows); findings.append(f'Customer Q1-to-Q2 revenue movement: {metrics}')
+                    else:
+                        cur.execute('SELECT c.name,sum(s.amount)::numeric(14,2) AS revenue FROM sales s JOIN customers c ON c.id=s.customer_id WHERE s.org_id=%s GROUP BY c.name ORDER BY revenue DESC LIMIT 5',(x_org_id,)); rows=cur.fetchall()
+                        metrics.extend({'customer':r[0],'revenue':float(r[1])} for r in rows); findings.append(f'Top customers by recorded revenue: {metrics}')
+            sources.append({'type':'dataset','name':'sales and customers','description':'Customer revenue aggregation'})
         except Exception: warnings.append('Customer sales data is unavailable.')
+    q=body.question.lower()
+    if kind in ('analytics','hybrid') and any(word in q for word in ['financial','cost','loss','expense']):
+        try:
+            with psycopg.connect(DATABASE_URL) as conn:
+                with conn.cursor() as cur:
+                    cur.execute('SELECT category,sum(amount)::numeric(14,2) FROM financial_records WHERE org_id=%s GROUP BY category ORDER BY sum(amount) DESC LIMIT 5',(x_org_id,)); rows=cur.fetchall()
+            financial=[{'category':r[0],'amount':float(r[1])} for r in rows]; metrics.extend(financial); findings.append(f'Financial records by category: {financial}'); sources.append({'type':'dataset','name':'financial_records','description':'Expense category totals'})
+            if not rows:warnings.append('No financial category records are available.')
+        except Exception:warnings.append('Financial records are unavailable.')
+    if kind in ('analytics','hybrid') and any(word in q for word in ['operational','incident','risk','issue']):
+        try:
+            with psycopg.connect(DATABASE_URL) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT category,severity,count(*) FROM operational_records WHERE org_id=%s GROUP BY category,severity ORDER BY count(*) DESC,category LIMIT 10",(x_org_id,)); rows=cur.fetchall()
+            incidents=[{'category':r[0],'severity':r[1],'count':r[2]} for r in rows]; metrics.extend(incidents); findings.append(f'Operational incidents by category and severity: {incidents}'); sources.append({'type':'dataset','name':'operational_records','description':'Incident frequency by category and severity'})
+            if not rows:warnings.append('No operational records are available.')
+        except Exception:warnings.append('Operational records are unavailable.')
     if kind in ('knowledge','hybrid'):
         try:
             qvec=await embed(body.question)

@@ -2,9 +2,9 @@
 
 ## Checkpoint 1: foundation and first backend slice
 
-Implemented: TypeScript Express API; password-hashed one-time admin bootstrap and JWT login; role middleware; org-scoped sales aggregation; multipart validation; FastAPI extraction for PDF/DOCX/TXT/CSV/XLSX; chunking; Ollama embeddings and grounded chat adapter; vector retrieval; fixed parameterized quarterly revenue query; structured evidence response; pgvector schema; Compose services; frontend Vite/React routing shell; API and privacy docs.
+Implemented: TypeScript Express API; password-hashed one-time admin bootstrap and JWT login; role middleware; org-scoped sales aggregation; multipart validation; FastAPI extraction for PDF/DOCX/TXT/CSV/XLSX; chunking and content-hash deduplication; Ollama embeddings and grounded chat adapter; vector retrieval; fixed parameterized revenue, customer movement, expense category and operational incident queries; structured evidence response; pgvector schema; Compose services; frontend Vite/React routing and typed API shell; API and privacy docs.
 
-Verified integration paths: admin bootstrap and login to the protected API; organisation-scoped Q1/Q2 SQL revenue aggregation; TXT report upload, Ollama embedding, pgvector indexing, hybrid Q2 analysis with SQL and document evidence; knowledge-only policy retrieval; persisted analysis result and audit event. Both configured Ollama models were pulled into local volumes.
+Verified integration paths: admin bootstrap and login to the protected API; organisation-scoped Q1/Q2 SQL revenue aggregation; TXT report upload, Ollama embedding, pgvector indexing, hybrid Q2 analysis with SQL and document evidence; knowledge-only policy retrieval; fixed analytics for Q1/Q2 customer movement, expense categories and operational incidents; duplicate document upload returns the prior indexed document; persisted analysis result and audit event. Both configured Ollama models were pulled into local volumes.
 
 Not yet complete: production-grade refresh/revocation; user/organisation administration; document-level ACLs and deletion; migrations runner/version tracking; broader demo analytics and safe query coverage; audit event coverage; retryable ingestion state; observability metrics; negative-path and cross-tenant integration coverage; CI; frontend API client integration and product UI; TLS/secrets/network hardening.
 

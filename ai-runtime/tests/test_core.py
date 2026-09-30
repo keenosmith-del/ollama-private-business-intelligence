@@ -9,6 +9,9 @@ def test_chunk_text_overlaps_and_preserves_content():
 def test_classifier_routes_hybrid_question():
     assert classify('Why did revenue fall in Q2?')=='hybrid'
     assert classify('Which customers contributed most to the revenue decline and what does management say?')=='hybrid'
+def test_classifier_separates_structured_financial_queries():
+    assert classify('What are our biggest areas of financial loss?')=='analytics'
+    assert classify('Which customers declined the most in Q2?')=='analytics'
 def test_vector_literal_enforces_database_dimension():
     assert vector_literal([0.0]*768).startswith('[0.0,')
     with pytest.raises(ValueError): vector_literal([0.0]*3)
