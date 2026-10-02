@@ -19,8 +19,8 @@ function readCookie(req: Request, name: string) {
 }
 
 function tokenHash(token: string) { return createHash('sha256').update(token).digest('hex'); }
-function makeAccessToken(user: { id: string; org_id: string; role: 'admin' | 'analyst' | 'viewer' }) {
-  return jwt.sign({ userId: user.id, orgId: user.org_id, role: user.role }, config.JWT_SECRET, { expiresIn: '30m', issuer: 'pbi-api', audience: 'pbi-client' });
+function makeAccessToken(user: { id: string; org_id: string; role: 'admin' | 'analyst' | 'viewer' }, familyId: string) {
+  return jwt.sign({ userId: user.id, orgId: user.org_id, role: user.role, familyId }, config.JWT_SECRET, { expiresIn: '30m', issuer: 'pbi-api', audience: 'pbi-client' });
 }
 function setRefreshCookie(res: Response, token: string) { res.cookie(refreshCookie, token, { ...cookieOptions, maxAge: refreshLifetimeMs }); }
 function clearRefreshCookie(res: Response) { res.clearCookie(refreshCookie, cookieOptions); }
@@ -36,6 +36,8 @@ authRouter.post('/bootstrap', async (req, res, next) => {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('pbi-bootstrap'))");
+      if ((await client.query('SELECT 1 FROM users LIMIT 1')).rowCount) { await client.query('ROLLBACK'); return res.status(409).json({ error: { code: 'BOOTSTRAP_COMPLETE', message: 'An initial user already exists' } }); }
       const org = await client.query('INSERT INTO organisations(name) VALUES($1) RETURNING id', [body.organisation]);
       const user = await client.query("INSERT INTO users(org_id,email,password_hash,role) VALUES($1,lower($2),$3,'admin') RETURNING id,org_id,email,role", [org.rows[0].id, body.email, hash]);
       await client.query("INSERT INTO audit_logs(org_id,actor_id,event_type) VALUES($1,$2,'auth.bootstrap')", [org.rows[0].id, user.rows[0].id]);
@@ -49,16 +51,17 @@ authRouter.post('/login', async (req, res, next) => {
   try {
     const body = z.object({ email: z.string().email().max(254), password: z.string().min(1).max(200) }).parse(req.body);
     const { rows } = await db.query("SELECT id,org_id,email,password_hash,role FROM users WHERE lower(email)=lower($1) AND active=true", [body.email]);
-    const user = rows[0];
+    const user = rows.length === 1 ? rows[0] : undefined;
     if (!user || !(await bcrypt.compare(body.password, user.password_hash))) {
       await db.query("INSERT INTO audit_logs(org_id,actor_id,event_type,metadata) VALUES ($1,$2,'auth.login_failed','{}')", [user?.org_id ?? null, user?.id ?? null]).catch(() => {});
       return res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect' } });
     }
+    const familyId = randomUUID();
     const refreshToken = randomBytes(48).toString('base64url');
-    await db.query('INSERT INTO auth_sessions(family_id,user_id,org_id,token_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval \'14 days\')', [randomUUID(), user.id, user.org_id, tokenHash(refreshToken)]);
+    await db.query('INSERT INTO auth_sessions(family_id,user_id,org_id,token_hash,expires_at) VALUES($1,$2,$3,$4,now()+interval \'14 days\')', [familyId, user.id, user.org_id, tokenHash(refreshToken)]);
     await db.query("INSERT INTO audit_logs(org_id,actor_id,event_type,metadata) VALUES ($1,$2,'auth.login','{}')", [user.org_id, user.id]);
     setRefreshCookie(res, refreshToken);
-    return res.json({ data: { accessToken: makeAccessToken(user), tokenType: 'Bearer', expiresIn: 1800, user: { id: user.id, email: user.email, role: user.role, orgId: user.org_id } } });
+    return res.json({ data: { accessToken: makeAccessToken(user, familyId), tokenType: 'Bearer', expiresIn: 1800, user: { id: user.id, email: user.email, role: user.role, orgId: user.org_id } } });
   } catch (e) { next(e); }
 });
 
@@ -88,7 +91,7 @@ authRouter.post('/refresh', async (req, res) => {
     await client.query("INSERT INTO audit_logs(org_id,actor_id,event_type,metadata) VALUES($1,$2,'auth.refreshed','{}')", [session.org_id, session.user_id]);
     await client.query('COMMIT');
     setRefreshCookie(res, nextToken);
-    return res.json({ data: { accessToken: makeAccessToken({ id: session.user_id, org_id: session.org_id, role: session.role }), tokenType: 'Bearer', expiresIn: 1800, user: { id: session.user_id, email: session.email, role: session.role, orgId: session.org_id } } });
+    return res.json({ data: { accessToken: makeAccessToken({ id: session.user_id, org_id: session.org_id, role: session.role }, session.family_id), tokenType: 'Bearer', expiresIn: 1800, user: { id: session.user_id, email: session.email, role: session.role, orgId: session.org_id } } });
   } catch { await client.query('ROLLBACK').catch(() => {}); clearRefreshCookie(res); return res.status(503).json({ error: { code: 'DEPENDENCY_UNAVAILABLE', message: 'Authentication service is unavailable' } }); } finally { client.release(); }
 });
 
@@ -96,7 +99,7 @@ authRouter.post('/logout', async (req, res) => {
   const refreshToken = readCookie(req, refreshCookie);
   if (refreshToken) {
     try {
-      const result = await db.query('UPDATE auth_sessions SET revoked_at=coalesce(revoked_at,now()) WHERE token_hash=$1 RETURNING user_id,org_id', [tokenHash(refreshToken)]);
+      const result = await db.query('UPDATE auth_sessions SET revoked_at=coalesce(revoked_at,now()) WHERE family_id=(SELECT family_id FROM auth_sessions WHERE token_hash=$1) RETURNING user_id,org_id', [tokenHash(refreshToken)]);
       if (result.rowCount) await db.query("INSERT INTO audit_logs(org_id,actor_id,event_type,metadata) VALUES($1,$2,'auth.logout','{}')", [result.rows[0].org_id, result.rows[0].user_id]);
     } catch { clearRefreshCookie(res); return res.status(503).json({ error: { code: 'DEPENDENCY_UNAVAILABLE', message: 'Authentication service is unavailable' } }); }
   }

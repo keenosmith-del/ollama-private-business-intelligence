@@ -22,6 +22,9 @@ All Node application endpoints are under `/api`; protected endpoints require `Au
 | GET | `/customers`, `/financials` | authenticated | Organisation-scoped business records |
 | POST | `/search` | authenticated | Semantic evidence search |
 | POST | `/sales/import` | admin/analyst | Validated, idempotent CSV sales import (`customer,date,amount`; optional `industry`) |
+| POST | `/expenses/import` | admin/analyst | Validated, idempotent expense CSV (`category,date,amount`; optional existing `customer,description`) |
+| GET | `/analyses`, `/analyses/:id` | owner/admin in organisation | List/inspect persisted results; every document source must still be accessible |
+| POST | `/documents/:id/retry` | uploader/admin; admin/analyst role | Retry retained bytes after failed/interrupted processing |
 | POST | `/documents` | admin/analyst | Parse, chunk, embed and index one supported document |
 | POST | `/analysis` | authenticated | Route question to fixed analytics and/or RAG |
 | GET | `/models` | authenticated | Report AI runtime readiness/model availability |
@@ -35,3 +38,5 @@ The browser holds access tokens in memory and sends the refresh cookie with cred
 The Node API runs checked-in SQL migrations at startup. Applied filenames and checksums are tracked in `schema_migrations`; modifying an already-applied migration stops startup, so schema changes should be added as a new numbered file.
 
 Restricted documents are searchable only by their uploader, admins, and explicitly granted users or roles. The same access predicate is applied to document metadata reads, semantic search, and RAG retrieval for analysis.
+
+Document metadata includes `error_code`, `processing_attempts`, `updated_at` and durable `status`. Concurrent indexing returns 409 `DOCUMENT_PROCESSING`; malformed and empty files fail with 422 and a document ID for inspection. The analysis contract includes `inferenceUsed`, `model`, `metrics`, `findings`, `sources` (document `excerpt`), and `warnings`. Real local inference selects validated evidence IDs; returned answers use fixed financial facts and exact evidence excerpts. A successful evidence response can have `inferenceUsed=false` with a model warning. Rate-limit responses use the normal JSON error envelope. Questions are stored as private analysis data, never request-log bodies.

@@ -1,6 +1,17 @@
 {
   "name": "ollama-private-business-intelligence",
   "private": true,
-  "workspaces": ["backend", "frontend"],
-  "scripts": {"dev:api": "npm --workspace backend run dev", "build": "npm --workspace backend run build && npm --workspace frontend run build", "test": "npm --workspace backend test && npm --workspace frontend run typecheck"}
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace backend run dev",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build",
+    "test": "npm --workspace backend test && npm --workspace frontend run typecheck",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
 }

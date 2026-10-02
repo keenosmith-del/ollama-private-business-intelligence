@@ -1,0 +1,575 @@
+{
+  "syntheticOrganisationId": "770fc695-a81a-4600-bbf6-9c2e4f326e1c",
+  "isolationOrganisationId": "b0e17c77-ab42-4978-a760-a1df32f437df",
+  "checksPassed": 82,
+  "questions": [
+    {
+      "question": "What was our revenue in Q2?",
+      "result": {
+        "answer": "Recorded revenue: 2027-04-01: 120000.00",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Recorded revenue: 2027-04-01: 120000.00"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 26499,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "Compare Q1 and Q2 revenue.",
+      "result": {
+        "answer": "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00\nRevenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%).",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00",
+          "Revenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%)."
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-01-01",
+            "revenue": 200000
+          },
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          },
+          {
+            "metric": "q2_change_percent",
+            "value": -40
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 2006,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "Which customers generated the most revenue?",
+      "result": {
+        "answer": "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00\nTop customers by recorded revenue: [{'customer': 'Synthetic Alpha', 'revenue': 190000.0}, {'customer': 'Synthetic Beta', 'revenue': 130000.0}]",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00",
+          "Top customers by recorded revenue: [{'customer': 'Synthetic Alpha', 'revenue': 190000.0}, {'customer': 'Synthetic Beta', 'revenue': 130000.0}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          },
+          {
+            "type": "dataset",
+            "name": "sales and financial_records",
+            "description": "All recorded periods; attributed costs only, shared overhead excluded"
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-01-01",
+            "revenue": 200000
+          },
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          },
+          {
+            "customer": "Synthetic Alpha",
+            "revenue": 190000
+          },
+          {
+            "customer": "Synthetic Beta",
+            "revenue": 130000
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 1437,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "Which customers are least profitable?",
+      "result": {
+        "answer": "Least recorded customer gross profit (revenue less attributed costs): [{'customer': 'Synthetic Beta', 'revenue': 130000.0, 'costs': 85000.0, 'profit': 45000.0}, {'customer': 'Synthetic Alpha', 'revenue': 190000.0, 'costs': 80000.0, 'profit': 110000.0}]",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Least recorded customer gross profit (revenue less attributed costs): [{'customer': 'Synthetic Beta', 'revenue': 130000.0, 'costs': 85000.0, 'profit': 45000.0}, {'customer': 'Synthetic Alpha', 'revenue': 190000.0, 'costs': 80000.0, 'profit': 110000.0}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales and financial_records",
+            "description": "All recorded periods; attributed costs only, shared overhead excluded"
+          }
+        ],
+        "metrics": [
+          {
+            "customer": "Synthetic Beta",
+            "revenue": 130000,
+            "costs": 85000,
+            "profit": 45000
+          },
+          {
+            "customer": "Synthetic Alpha",
+            "revenue": 190000,
+            "costs": 80000,
+            "profit": 110000
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 3085,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "What are our largest expense categories?",
+      "result": {
+        "answer": "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "financial_records",
+            "description": "Recorded expense category sums, not causal loss estimates"
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Delivery",
+            "amount": 165000
+          },
+          {
+            "category": "Logistics",
+            "amount": 30000
+          },
+          {
+            "category": "Returns",
+            "amount": 12000
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 975,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "What are the three biggest areas of financial loss or cost exposure?",
+      "result": {
+        "answer": "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]",
+        "inferenceUsed": true,
+        "confidence": "low",
+        "analysisType": "analytics",
+        "findings": [
+          "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "financial_records",
+            "description": "Recorded expense category sums, not causal loss estimates"
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Delivery",
+            "amount": 165000
+          },
+          {
+            "category": "Logistics",
+            "amount": 30000
+          },
+          {
+            "category": "Returns",
+            "amount": 12000
+          }
+        ],
+        "warnings": [
+          "Expense totals are cost exposure, not proven financial losses. No causal loss amount has been calculated."
+        ],
+        "latencyMs": 975,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "Why did revenue decline in Q2?",
+      "result": {
+        "answer": "Established financial facts:\nRecorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00\nRevenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%).\n\nManagement document evidence (exact excerpts; not proven causation):\n[Source: synthetic-audit.txt, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.\n\n[Source: synthetic-audit.xlsx, page not available]\nSheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500\n\n[Source: synthetic-audit.docx, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.",
+        "inferenceUsed": true,
+        "confidence": "low",
+        "analysisType": "hybrid",
+        "findings": [
+          "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00",
+          "Revenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%).",
+          "[Source: synthetic-audit.txt, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.",
+          "[Source: synthetic-audit.xlsx, page not available] Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500",
+          "[Source: synthetic-audit.docx, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.",
+          "[Source: synthetic-recovery.txt, page not available] SYNTHETIC RECOVERY: Receipts required for expenses."
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          },
+          {
+            "type": "document",
+            "id": "c3c52bbc-3f82-46e0-97e3-915e2810dc30",
+            "name": "synthetic-audit.txt",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established."
+          },
+          {
+            "type": "document",
+            "id": "0cbadb44-aee9-4bb7-9a56-66410a2875b9",
+            "name": "synthetic-audit.xlsx",
+            "page": null,
+            "excerpt": "Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500"
+          },
+          {
+            "type": "document",
+            "id": "7247b5e8-02ec-429f-9b01-716d4b4d0f74",
+            "name": "synthetic-audit.docx",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required."
+          },
+          {
+            "type": "document",
+            "id": "788d0188-e411-421e-8616-0b90814ddab1",
+            "name": "synthetic-recovery.txt",
+            "page": null,
+            "excerpt": "SYNTHETIC RECOVERY: Receipts required for expenses."
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-01-01",
+            "revenue": 200000
+          },
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          },
+          {
+            "metric": "q2_change_percent",
+            "value": -40
+          }
+        ],
+        "warnings": [
+          "Financial facts establish amounts, not causes. Management explanations are document statements; no causal loss amount is established."
+        ],
+        "latencyMs": 6739,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "What does our internal expense policy say?",
+      "result": {
+        "answer": "Document evidence (exact excerpts):\n[Source: synthetic-audit.csv, page not available]\nCSV columns: policy, requirement policy: Expense | requirement: Receipts and manager approval required\n\n[Source: synthetic-audit.docx, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.\n\n[Source: synthetic-audit.txt, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.\n\n[Source: synthetic-audit.xlsx, page not available]\nSheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500\n\n[Source: synthetic-audit.pdf, page 1]\nSYNTHETIC AUDIT: Expense receipts and manager approval are required.",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "knowledge",
+        "findings": [
+          "[Source: synthetic-audit.csv, page not available] CSV columns: policy, requirement policy: Expense | requirement: Receipts and manager approval required",
+          "[Source: synthetic-audit.docx, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.",
+          "[Source: synthetic-audit.txt, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.",
+          "[Source: synthetic-audit.xlsx, page not available] Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500",
+          "[Source: synthetic-audit.pdf, page 1] SYNTHETIC AUDIT: Expense receipts and manager approval are required."
+        ],
+        "sources": [
+          {
+            "type": "document",
+            "id": "58d5c4e6-e671-4d5b-92c2-95f104124a69",
+            "name": "synthetic-audit.csv",
+            "page": null,
+            "excerpt": "CSV columns: policy, requirement policy: Expense | requirement: Receipts and manager approval required"
+          },
+          {
+            "type": "document",
+            "id": "7247b5e8-02ec-429f-9b01-716d4b4d0f74",
+            "name": "synthetic-audit.docx",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required."
+          },
+          {
+            "type": "document",
+            "id": "c3c52bbc-3f82-46e0-97e3-915e2810dc30",
+            "name": "synthetic-audit.txt",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established."
+          },
+          {
+            "type": "document",
+            "id": "0cbadb44-aee9-4bb7-9a56-66410a2875b9",
+            "name": "synthetic-audit.xlsx",
+            "page": null,
+            "excerpt": "Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500"
+          },
+          {
+            "type": "document",
+            "id": "a606a6e8-a1a4-45b7-ba0d-1defe3a5f294",
+            "name": "synthetic-audit.pdf",
+            "page": 1,
+            "excerpt": "SYNTHETIC AUDIT: Expense receipts and manager approval are required."
+          }
+        ],
+        "metrics": [],
+        "warnings": [],
+        "latencyMs": 7015,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "What operational issues may have contributed to financial performance?",
+      "result": {
+        "answer": "Established financial facts:\nLargest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]\nRecorded operational incidents: [{'category': 'Supplier delay', 'severity': 'high', 'count': 1}]\n\nManagement document evidence (exact excerpts; not proven causation):\n[Source: synthetic-audit.txt, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.\n\n[Source: synthetic-audit.docx, page not available]\nSYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.\n\n[Source: synthetic-audit.xlsx, page not available]\nSheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500\n\n[Source: synthetic-audit.pdf, page 1]\nSYNTHETIC AUDIT: Expense receipts and manager approval are required.\n\n[Source: synthetic-recovery.txt, page not available]\nSYNTHETIC RECOVERY: Receipts required for expenses.",
+        "inferenceUsed": true,
+        "confidence": "low",
+        "analysisType": "hybrid",
+        "findings": [
+          "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 165000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]",
+          "Recorded operational incidents: [{'category': 'Supplier delay', 'severity': 'high', 'count': 1}]",
+          "[Source: synthetic-audit.txt, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established.",
+          "[Source: synthetic-audit.docx, page not available] SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required.",
+          "[Source: synthetic-audit.xlsx, page not available] Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500",
+          "[Source: synthetic-audit.pdf, page 1] SYNTHETIC AUDIT: Expense receipts and manager approval are required.",
+          "[Source: synthetic-recovery.txt, page not available] SYNTHETIC RECOVERY: Receipts required for expenses."
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "financial_records",
+            "description": "Recorded expense category sums, not causal loss estimates"
+          },
+          {
+            "type": "dataset",
+            "name": "operational_records",
+            "description": "Incident frequency; no inferred financial impact"
+          },
+          {
+            "type": "document",
+            "id": "c3c52bbc-3f82-46e0-97e3-915e2810dc30",
+            "name": "synthetic-audit.txt",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established."
+          },
+          {
+            "type": "document",
+            "id": "7247b5e8-02ec-429f-9b01-716d4b4d0f74",
+            "name": "synthetic-audit.docx",
+            "page": null,
+            "excerpt": "SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. Synthetic policy control: approval required."
+          },
+          {
+            "type": "document",
+            "id": "0cbadb44-aee9-4bb7-9a56-66410a2875b9",
+            "name": "synthetic-audit.xlsx",
+            "page": null,
+            "excerpt": "Sheet: Sheet; columns: description, amount description: SYNTHETIC COMPLETION AUDIT: Internal expense policy requires receipts for every reimbursement. Travel above ZAR 500 requires manager approval. Management report Q2 2027: revenue declined; supplier delays deferred shipments and a system outage disrupted order processing. These are management explanations; no causal loss amount has been established. | amount: 500"
+          },
+          {
+            "type": "document",
+            "id": "a606a6e8-a1a4-45b7-ba0d-1defe3a5f294",
+            "name": "synthetic-audit.pdf",
+            "page": 1,
+            "excerpt": "SYNTHETIC AUDIT: Expense receipts and manager approval are required."
+          },
+          {
+            "type": "document",
+            "id": "788d0188-e411-421e-8616-0b90814ddab1",
+            "name": "synthetic-recovery.txt",
+            "page": null,
+            "excerpt": "SYNTHETIC RECOVERY: Receipts required for expenses."
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Delivery",
+            "amount": 165000
+          },
+          {
+            "category": "Logistics",
+            "amount": 30000
+          },
+          {
+            "category": "Returns",
+            "amount": 12000
+          },
+          {
+            "category": "Supplier delay",
+            "severity": "high",
+            "count": 1
+          }
+        ],
+        "warnings": [
+          "Financial facts establish amounts, not causes. Management explanations are document statements; no causal loss amount is established."
+        ],
+        "latencyMs": 5448,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "Which customers are becoming less profitable? Compare Q1 and Q2.",
+      "result": {
+        "answer": "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00\nRevenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%).\nCustomer recorded gross profit movement 2027-01-01 to 2027-04-01: [{'quarter': '2027-01-01', 'revenue': 200000.0}, {'quarter': '2027-04-01', 'revenue': 120000.0}, {'metric': 'q2_change_percent', 'value': -40.0}, {'customer': 'Synthetic Beta', 'q1Profit': 50000.0, 'q2Profit': -5000.0, 'change': -55000.0, 'previousQuarter': '2027-01-01', 'targetQuarter': '2027-04-01'}, {'customer': 'Synthetic Alpha', 'q1Profit': 80000.0, 'q2Profit': 30000.0, 'change': -50000.0, 'previousQuarter': '2027-01-01', 'targetQuarter': '2027-04-01'}]",
+        "inferenceUsed": true,
+        "confidence": "medium",
+        "analysisType": "analytics",
+        "findings": [
+          "Recorded revenue: 2027-01-01: 200000.00; 2027-04-01: 120000.00",
+          "Revenue change 2027-01-01 to 2027-04-01: -80000.00 (-40.00%).",
+          "Customer recorded gross profit movement 2027-01-01 to 2027-04-01: [{'quarter': '2027-01-01', 'revenue': 200000.0}, {'quarter': '2027-04-01', 'revenue': 120000.0}, {'metric': 'q2_change_percent', 'value': -40.0}, {'customer': 'Synthetic Beta', 'q1Profit': 50000.0, 'q2Profit': -5000.0, 'change': -55000.0, 'previousQuarter': '2027-01-01', 'targetQuarter': '2027-04-01'}, {'customer': 'Synthetic Alpha', 'q1Profit': 80000.0, 'q2Profit': 30000.0, 'change': -50000.0, 'previousQuarter': '2027-01-01', 'targetQuarter': '2027-04-01'}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          },
+          {
+            "type": "dataset",
+            "name": "sales and financial_records",
+            "description": "Customer aggregates; 2027-01-01 to 2027-07-01 exclusive"
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-01-01",
+            "revenue": 200000
+          },
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          },
+          {
+            "metric": "q2_change_percent",
+            "value": -40
+          },
+          {
+            "customer": "Synthetic Beta",
+            "q1Profit": 50000,
+            "q2Profit": -5000,
+            "change": -55000,
+            "previousQuarter": "2027-01-01",
+            "targetQuarter": "2027-04-01"
+          },
+          {
+            "customer": "Synthetic Alpha",
+            "q1Profit": 80000,
+            "q2Profit": 30000,
+            "change": -50000,
+            "previousQuarter": "2027-01-01",
+            "targetQuarter": "2027-04-01"
+          }
+        ],
+        "warnings": [],
+        "latencyMs": 937,
+        "model": "qwen2.5:1.5b"
+      }
+    },
+    {
+      "question": "What was our profitability in Q2?",
+      "result": {
+        "answer": "Recorded revenue: 2027-04-01: 120000.00\nRecorded revenue 120000.00 less recorded expenses 137000.00 = recorded profit -17000.00.\nLargest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 95000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]",
+        "inferenceUsed": true,
+        "confidence": "low",
+        "analysisType": "analytics",
+        "findings": [
+          "Recorded revenue: 2027-04-01: 120000.00",
+          "Recorded revenue 120000.00 less recorded expenses 137000.00 = recorded profit -17000.00.",
+          "Largest recorded expense categories (cost exposure): [{'category': 'Delivery', 'amount': 95000.0}, {'category': 'Logistics', 'amount': 30000.0}, {'category': 'Returns', 'amount': 12000.0}]"
+        ],
+        "sources": [
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Sum of recorded sales; quarters shown explicitly"
+          },
+          {
+            "type": "dataset",
+            "name": "sales",
+            "description": "Recorded revenue sum"
+          },
+          {
+            "type": "dataset",
+            "name": "financial_records",
+            "description": "Recorded expense sum, aggregated separately to avoid duplicated amounts"
+          },
+          {
+            "type": "dataset",
+            "name": "financial_records",
+            "description": "Recorded expense category sums, not causal loss estimates"
+          }
+        ],
+        "metrics": [
+          {
+            "quarter": "2027-04-01",
+            "revenue": 120000
+          },
+          {
+            "metric": "recorded_revenue",
+            "value": 120000
+          },
+          {
+            "metric": "recorded_expenses",
+            "value": 137000
+          },
+          {
+            "metric": "recorded_profit",
+            "value": -17000
+          },
+          {
+            "category": "Delivery",
+            "amount": 95000
+          },
+          {
+            "category": "Logistics",
+            "amount": 30000
+          },
+          {
+            "category": "Returns",
+            "amount": 12000
+          }
+        ],
+        "warnings": [
+          "Profit covers recorded sales and expense entries only; it does not establish complete accounting or tax profit."
+        ],
+        "latencyMs": 769,
+        "model": "qwen2.5:1.5b"
+      }
+    }
+  ]
+}

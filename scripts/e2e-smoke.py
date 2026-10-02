@@ -27,7 +27,10 @@ def request(path:str,method='GET',body:bytes|None=None,headers:dict|None=None):
         with OPENER.open(req,timeout=240) as response:
             payload=response.read()
             return response.status,json.loads(payload) if payload else {}
-    except urllib.error.HTTPError as error:return error.code,json.loads(error.read())
+    except urllib.error.HTTPError as error:
+        payload=error.read()
+        try:return error.code,json.loads(payload)
+        except json.JSONDecodeError:return error.code,{'error':{'code':'HTTP_ERROR','message':'Non-JSON error response'}}
 
 def json_body(value):return json.dumps(value).encode()
 
@@ -91,7 +94,7 @@ def main():
     status,profitability=analyse(token,'Which customers are least profitable?')
     profits=profitability.get('data',{}).get('metrics',[])
     if status!=200 or profitability.get('data',{}).get('analysisType')!='analytics' or not any('profit' in metric for metric in profits):raise SystemExit('Customer profitability analysis failed its metric assertion.')
-    status,profit_trend=analyse(token,'Which customers are becoming less profitable?')
+    status,profit_trend=analyse(token,'Which customers are becoming less profitable? Compare Q1 and Q2.')
     trend_metrics=profit_trend.get('data',{}).get('metrics',[])
     if status!=200 or not any('q1Profit' in metric and 'q2Profit' in metric for metric in trend_metrics):raise SystemExit('Customer profitability trend analysis failed its metric assertion.')
     status,audit=request('/api/audit',headers={'Authorization':'Bearer '+token})
@@ -100,6 +103,11 @@ def main():
     if status!=204:raise SystemExit('Logout did not revoke the refresh session.')
     status,_=request('/api/auth/refresh','POST')
     if status!=401:raise SystemExit('A logged-out refresh session remained active.')
+    status,_=request('/api/analytics/revenue',headers={'Authorization':'Bearer '+token})
+    if status!=401:raise SystemExit('A logged-out bearer token remained active.')
+    status,login=request('/api/auth/login','POST',json_body({'email':EMAIL,'password':password}),{'Content-Type':'application/json'})
+    if status!=200:raise SystemExit('Admin re-login failed.')
+    token=login['data']['accessToken']
     viewer_email='e2e-'+secrets.token_hex(5)+'@example.test'
     status,viewer=request('/api/users','POST',json_body({'email':viewer_email,'password':password,'role':'viewer'}),{'Authorization':'Bearer '+token,'Content-Type':'application/json'})
     if status!=201:raise SystemExit('Admin user creation failed.')

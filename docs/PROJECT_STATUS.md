@@ -1,4 +1,24 @@
-# Project status — 2026-09-30
+# Project status — 2026-10-02
+
+## Completion audit
+
+The existing React/Express/FastAPI/PostgreSQL/pgvector/Ollama stack has been audited directly and completed for the local demonstration journey. Existing data/volumes were preserved. The frontend stylesheet and visual design are unchanged.
+
+Resolved: durable ingestion status/errors/attempts and retained-byte retry; DOCX table/ragged-CSV extraction; nonblocking duplicate indexing; sales/customer and attributed-expense CSV imports in the UI; explicit quarter/year calculations and overall recorded profit; real document search/visibility controls; saved question/result inspection with source ACL rechecks; live AI readiness; expired-session transition; concurrent-bootstrap protection and logout/replay bearer revocation.
+
+The audit caught unsupported causal/financial prose from the small model. Real Ollama inference now selects validated evidence IDs; the application renders SQL/Decimal facts and exact source excerpts. Management statements are distinguished from established financial facts. Expense totals are cost exposure, not inferred losses.
+
+Verified static checks: 3 Node tests, frontend type check, backend and React production builds, 13 Python tests, Ruff, compilation, Compose validation and Git whitespace. Fresh bootstrap audit verified all 8 migrations and concurrent one-time provisioning in a disposable database. Production dependency audit reported zero vulnerabilities. Final live-suite counts: 82 business/security API assertions across 11 real-Ollama questions, 6 real missing-model/recovery assertions, the existing API smoke journey, and 2 real Chromium frontend journeys (26.9 seconds). PostgreSQL/pgvector, all eight migrations, both model artifacts and `/ready` were verified on the running stack.
+
+See [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for executed tests/failures, synthetic numerical evidence, exact startup/demo steps, remaining deployment limitations and redesign readiness. [audit-results.json](audit-results.json) contains the final synthetic question results. Local ports: frontend 5173, API 3000, Ollama 11434, Docker PostgreSQL 5433 by default. The pre-existing host PostgreSQL service on 5432 was preserved.
+
+No blocker remains for the verified local demo. The backend is ready for frontend redesign. Known limits remain fixed analytic intents, synchronous/manual ingestion recovery, extractive evidence rather than unrestricted generated explanations, no OCR/multi-currency accounting, and production hardening/performance work. Those limits and the initial failed checks are explicit in the completion report. All five services are left running for review.
+
+## Historical checkpoints
+
+The following records describe earlier implementations and tests. Where they mention missing capabilities, the completion audit above supersedes them.
+
+### Status recorded 2026-09-30
 
 ## Checkpoint 1: foundation and first backend slice
 

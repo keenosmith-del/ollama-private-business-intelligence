@@ -12,3 +12,6 @@ __pycache__/
 data/uploads/*
 !data/uploads/.gitkeep
 .DS_Store
+
+test-results/
+playwright-report/

@@ -13,11 +13,12 @@ export async function refreshAccessToken(){
 export async function api<T>(path:string,init:RequestInit={}):Promise<T>{
   let response=await makeRequest(path,init);if(response.status===401&&!path.startsWith('/auth/')){const session=await refreshAccessToken();if(session)response=await makeRequest(path,init,session.accessToken)}
   const payload=await response.json().catch(()=>null);
+  if(response.status===401&&!path.startsWith('/auth/'))window.dispatchEvent(new Event('pbi-session-expired'));
   if(!response.ok)throw new Error(payload?.error?.message??'The request could not be completed');return payload as T;
 }
 export const signIn=(email:string,password:string)=>api<{data:{accessToken:string;user:{id:string;email:string;role:string}}}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
 export const signOut=()=>api<void>('/auth/logout',{method:'POST'});
-export type AnalysisSource = { type?: string; id?: string; name?: string; page?: number | null; description?: string };
-export type AnalysisMetric = { metric?: string; value?: number; quarter?: string; revenue?: number; customer?: string; category?: string; amount?: number; count?: number; severity?: string; change?: number };
-export type AnalysisResponse = { answer: string; confidence: string; analysisType: string; sources: AnalysisSource[]; metrics: AnalysisMetric[]; warnings: string[]; latencyMs?: number };
+export type AnalysisSource = { type?: string; id?: string; name?: string; page?: number | null; description?: string; excerpt?: string };
+export type AnalysisMetric = { profit?:number; costs?:number; q1Profit?:number; q2Profit?:number; previousQuarter?:string; targetQuarter?:string; metric?: string; value?: number; quarter?: string; revenue?: number; customer?: string; category?: string; amount?: number; count?: number; severity?: string; change?: number };
+export type AnalysisResponse = { answer: string; confidence: string; analysisType: string; sources: AnalysisSource[]; metrics: AnalysisMetric[]; warnings: string[]; latencyMs?: number; inferenceUsed?:boolean };
 export const analyse=(question:string)=>api<{data:AnalysisResponse}>('/analysis',{method:'POST',body:JSON.stringify({question})});
